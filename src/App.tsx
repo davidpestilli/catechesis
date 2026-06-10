@@ -1,4 +1,5 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { AdminShell } from '@/components/layout/admin-shell'
 import { ProtectedRoute } from '@/components/protected-route'
 import { SiteShell } from '@/components/layout/site-shell'
 import { AdminDashboardPage } from '@/pages/admin-dashboard-page'
@@ -28,11 +29,17 @@ const router = createHashRouter([
       { path: 'artigos', element: <ArticlesPage /> },
       { path: 'artigos/:slug', element: <ArticleViewPage /> },
       { path: 'login', element: <LoginPage /> },
-      {
-        element: <ProtectedRoute />,
-        children: [{ path: 'admin', element: <AdminDashboardPage /> }],
-      },
       { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/admin',
+        element: <AdminShell />,
+        children: [{ index: true, element: <AdminDashboardPage /> }],
+      },
     ],
   },
 ])

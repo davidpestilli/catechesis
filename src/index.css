@@ -124,6 +124,49 @@
   .prose-catechesis iframe {
     @apply my-6 rounded-[28px];
   }
+
+  .rich-text-editor-content {
+    word-break: break-word;
+  }
+
+  .rich-text-editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: rgb(168 162 158);
+  }
+
+  .rich-text-editor-content > :first-child {
+    margin-top: 0;
+  }
+
+  .rich-text-editor-content > :last-child {
+    margin-bottom: 0;
+  }
+
+  .rich-text-editor-content p,
+  .rich-text-editor-content h1,
+  .rich-text-editor-content h2,
+  .rich-text-editor-content h3,
+  .rich-text-editor-content ul,
+  .rich-text-editor-content ol,
+  .rich-text-editor-content blockquote {
+    margin-bottom: 1rem;
+  }
+
+  .rich-text-editor-content ul,
+  .rich-text-editor-content ol {
+    padding-left: 1.5rem;
+  }
+
+  .rich-text-editor-content a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+  }
+
+  .rich-text-editor-content img,
+  .rich-text-editor-content video {
+    display: block;
+    max-width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

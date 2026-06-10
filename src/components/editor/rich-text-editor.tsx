@@ -6,13 +6,10 @@ import {
   Link2,
   List,
   ListOrdered,
-  Sparkles,
   Type,
   Underline,
   Video,
 } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { cn, fileToDataUrl } from '@/lib/utils'
 
 interface RichTextEditorProps {
@@ -46,6 +43,7 @@ export function RichTextEditor({
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const [mounted, setMounted] = useState(false)
+  const [currentFont, setCurrentFont] = useState(fonts[0]?.value ?? 'inherit')
   const [currentHeading, setCurrentHeading] = useState('P')
 
   useEffect(() => {
@@ -71,19 +69,23 @@ export function RichTextEditor({
 
   async function handleFileInsert(file: File, tag: 'image' | 'video') {
     const dataUrl = await fileToDataUrl(file)
-    if (tag === 'image') {
-      exec('insertImage', dataUrl)
-      return
-    }
-
     editorRef.current?.focus()
-    document.execCommand(
-      'insertHTML',
-      false,
-      `<video controls class="my-3 w-full rounded-3xl" src="${dataUrl}"></video>`,
-    )
+    const markup =
+      tag === 'image'
+        ? `<img alt="" class="my-4 h-auto max-w-full rounded-[24px]" src="${dataUrl}" />`
+        : `<video controls class="my-4 w-full rounded-[24px]" src="${dataUrl}"></video>`
+    document.execCommand('insertHTML', false, markup)
     emitChange()
   }
+
+  const plainText = useMemo(
+    () =>
+      value
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    [value],
+  )
 
   const toolbarButtons = useMemo(
     () => [
@@ -107,81 +109,82 @@ export function RichTextEditor({
   )
 
   return (
-    <div className={cn('rounded-[28px] border border-stone-200 bg-slate-800/95 text-slate-100', className)}>
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 px-3 py-3">
-        <select
-          className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-2 text-sm"
-          onChange={(event) => exec('fontName', event.target.value)}
-          defaultValue={fonts[0]?.value}
-        >
-          {fonts.map((font) => (
-            <option key={font.value} value={font.value}>
-              {font.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="rounded-xl border border-slate-600 bg-slate-700 px-3 py-2 text-sm"
-          value={currentHeading}
-          onChange={(event) => {
-            setCurrentHeading(event.target.value)
-            exec('formatBlock', event.target.value)
-          }}
-        >
-          {headings.map((heading) => (
-            <option key={heading.value} value={heading.value}>
-              {heading.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex flex-wrap gap-1">
-          {toolbarButtons.map(({ icon: Icon, label, action }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={action}
-              className="rounded-xl border border-slate-600 bg-slate-700 p-2 text-slate-100 transition hover:bg-slate-600"
-              title={label}
+    <div
+      className={cn(
+        'overflow-hidden rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,241,230,0.92))] text-stone-800 shadow-[0_18px_45px_rgba(74,61,35,0.09)] transition focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10',
+        className,
+      )}
+    >
+      <div className="border-b border-stone-200/90 bg-stone-50/80 px-3 py-3 md:px-4">
+        <div className="grid gap-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
+            <select
+              className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => {
+                setCurrentFont(event.target.value)
+                exec('fontName', event.target.value)
+              }}
+              value={currentFont}
             >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
-        </div>
+              {fonts.map((font) => (
+                <option key={font.value} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
 
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="ml-auto border border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200"
-          onClick={() =>
-            toast.info('A acao de IA fica pronta assim que o endpoint com DeepSeek for ligado ao worker.')
-          }
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          IA
-        </Button>
+            <select
+              className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              value={currentHeading}
+              onChange={(event) => {
+                setCurrentHeading(event.target.value)
+                exec('formatBlock', event.target.value)
+              }}
+            >
+              {headings.map((heading) => (
+                <option key={heading.value} value={heading.value}>
+                  {heading.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max gap-2">
+              {toolbarButtons.map(({ icon: Icon, label, action }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900"
+                  title={label}
+                  aria-label={label}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={emitChange}
-        className="min-h-[320px] w-full bg-slate-800 px-4 py-4 text-[15px] leading-7 text-slate-100 outline-none"
-        data-placeholder={placeholder}
-      />
+      <div className="bg-white">
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={emitChange}
+          className="rich-text-editor-content min-h-[260px] w-full px-4 py-4 text-[15px] leading-7 text-stone-800 outline-none md:min-h-[340px] md:px-5"
+          data-placeholder={placeholder}
+        />
+      </div>
 
-      {!value ? (
-        <div className="pointer-events-none -mt-[308px] px-4 py-4 text-sm text-slate-400">{placeholder}</div>
-      ) : null}
-
-      <div className="flex justify-end border-t border-slate-700 px-4 py-3 text-xs text-slate-400">
-        <span className="inline-flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-stone-50/70 px-4 py-3 text-xs text-stone-500">
+        <span className="inline-flex items-center gap-2 font-medium">
           <Type className="h-3.5 w-3.5" />
           HTML publicado no proprio sistema
         </span>
+        <span>{plainText ? `${plainText.length} caracteres no conteudo` : 'Editor pronto para receber texto, imagens e video'}</span>
       </div>
 
       <input

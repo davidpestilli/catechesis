@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,29 @@ import type {
   EncounterQuiz,
   SiteSettings,
 } from '@/types/content'
+
+const adminSelectClassName =
+  'h-11 w-full rounded-2xl border border-input bg-white/90 px-4 text-sm text-stone-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20'
+
+function AdminFormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-[24px] border border-stone-200/80 bg-stone-50/60 p-4 md:p-5">
+      <div className="mb-4">
+        <h4 className="font-display text-2xl text-stone-900">{title}</h4>
+        <p className="mt-1 text-sm leading-6 text-stone-600">{description}</p>
+      </div>
+      <div className="grid gap-4">{children}</div>
+    </section>
+  )
+}
 
 function emptyGroup(): ClassGroup {
   return {
@@ -220,23 +243,29 @@ export function AdminDashboardPage() {
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 pb-24">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">painel interno</p>
+    <section className="mx-auto max-w-7xl px-4 py-8 pb-12 md:py-10">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+            gestao de conteudo
+          </p>
           <h1 className="font-display text-4xl text-stone-900">Edicao do Catechesis</h1>
+          <p className="mt-2 text-sm leading-6 text-stone-600">
+            O painel administrativo agora fica separado da navegacao publica e concentra a edicao em
+            blocos mais claros para reduzir ruido visual no mobile.
+          </p>
         </div>
         <Badge>Local-first com fallback em demo</Badge>
       </div>
 
       <Tabs defaultValue="groups" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="groups">Turmas</TabsTrigger>
-          <TabsTrigger value="encounters">Encontros</TabsTrigger>
-          <TabsTrigger value="assets">Materiais</TabsTrigger>
-          <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-          <TabsTrigger value="articles">Artigos</TabsTrigger>
-          <TabsTrigger value="settings">Landing</TabsTrigger>
+        <TabsList className="max-w-full flex-nowrap overflow-x-auto rounded-[24px] border border-stone-200/80 bg-white/80 p-1.5 shadow-[0_16px_40px_rgba(74,61,35,0.08)]">
+          <TabsTrigger className="shrink-0" value="groups">Turmas</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="encounters">Encontros</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="assets">Materiais</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="quizzes">Quizzes</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="articles">Artigos</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="settings">Landing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="groups">
@@ -329,95 +358,151 @@ export function AdminDashboardPage() {
               <CardDescription className="mt-2">
                 O encontro agora pertence a uma turma antes de receber resumo, material de apoio e quiz.
               </CardDescription>
-              <div className="mt-5 grid gap-4">
-                <div className="space-y-2">
-                  <Label>Turma</Label>
-                  <select
-                    value={encounterForm.groupId}
-                    onChange={(event) =>
-                      setEncounterForm((current) => ({ ...current, groupId: event.target.value }))
-                    }
-                    className="h-11 rounded-2xl border border-input bg-white px-4"
-                  >
-                    {groupOptions.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Titulo</Label>
-                    <Input
-                      value={encounterForm.title}
-                      onChange={(event) =>
-                        setEncounterForm((current) => ({ ...current, title: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Slug</Label>
-                    <Input
-                      value={encounterForm.slug}
-                      onChange={(event) =>
-                        setEncounterForm((current) => ({ ...current, slug: event.target.value }))
-                      }
-                      placeholder="gerado a partir do titulo"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Tema</Label>
-                    <Input
-                      value={encounterForm.theme}
-                      onChange={(event) =>
-                        setEncounterForm((current) => ({ ...current, theme: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Publico</Label>
-                    <Input
-                      value={encounterForm.audience}
-                      onChange={(event) =>
-                        setEncounterForm((current) => ({ ...current, audience: event.target.value }))
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Resumo curto</Label>
-                  <Textarea
-                    value={encounterForm.summary}
-                    onChange={(event) =>
-                      setEncounterForm((current) => ({ ...current, summary: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Imagem de capa</Label>
-                  <Input
-                    value={encounterForm.coverImageUrl ?? ''}
-                    onChange={(event) =>
-                      setEncounterForm((current) => ({ ...current, coverImageUrl: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Texto HTML do encontro</Label>
-                  <RichTextEditor
-                    value={encounterForm.bodyHtml ?? ''}
-                    onChange={(bodyHtml) => setEncounterForm((current) => ({ ...current, bodyHtml }))}
-                  />
-                </div>
-                <Button
-                  onClick={() => void handleSaveEncounter()}
-                  disabled={saveEncounter.isPending || !encounterForm.groupId}
+              <div className="mt-6 space-y-5">
+                <AdminFormSection
+                  title="Identidade do encontro"
+                  description="Defina a turma, o titulo e os dados que ajudam a localizar o encontro no painel e no site."
                 >
-                  {saveEncounter.isPending ? 'Salvando...' : 'Salvar encontro'}
-                </Button>
+                  <div className="space-y-2">
+                    <Label>Turma</Label>
+                    <select
+                      value={encounterForm.groupId}
+                      onChange={(event) =>
+                        setEncounterForm((current) => ({ ...current, groupId: event.target.value }))
+                      }
+                      className={adminSelectClassName}
+                    >
+                      {groupOptions.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Titulo</Label>
+                      <Input
+                        value={encounterForm.title}
+                        onChange={(event) =>
+                          setEncounterForm((current) => ({ ...current, title: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Slug</Label>
+                      <Input
+                        value={encounterForm.slug}
+                        onChange={(event) =>
+                          setEncounterForm((current) => ({ ...current, slug: event.target.value }))
+                        }
+                        placeholder="gerado a partir do titulo"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Tema</Label>
+                      <Input
+                        value={encounterForm.theme}
+                        onChange={(event) =>
+                          setEncounterForm((current) => ({ ...current, theme: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Publico</Label>
+                      <Input
+                        value={encounterForm.audience}
+                        onChange={(event) =>
+                          setEncounterForm((current) => ({ ...current, audience: event.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </AdminFormSection>
+
+                <AdminFormSection
+                  title="Apresentacao"
+                  description="Resumo e capa ficam juntos para facilitar a revisao do material antes de publicar."
+                >
+                  <div className="space-y-2">
+                    <Label>Resumo curto</Label>
+                    <Textarea
+                      value={encounterForm.summary}
+                      onChange={(event) =>
+                        setEncounterForm((current) => ({ ...current, summary: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+                    <div className="space-y-2">
+                      <Label>Imagem de capa</Label>
+                      <Input
+                        value={encounterForm.coverImageUrl ?? ''}
+                        onChange={(event) =>
+                          setEncounterForm((current) => ({
+                            ...current,
+                            coverImageUrl: event.target.value,
+                          }))
+                        }
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/75 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        Preview da capa
+                      </p>
+                      {encounterForm.coverImageUrl ? (
+                        <img
+                          src={encounterForm.coverImageUrl}
+                          alt="Preview da capa do encontro"
+                          className="mt-3 aspect-[4/3] w-full rounded-[18px] object-cover"
+                        />
+                      ) : (
+                        <div className="mt-3 flex aspect-[4/3] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                          Cole a URL da imagem para revisar a capa aqui.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </AdminFormSection>
+
+                <AdminFormSection
+                  title="Conteudo principal"
+                  description="A barra de ferramentas foi compactada para mobile e o editor agora segue a mesma linguagem visual do painel."
+                >
+                  <div className="space-y-2">
+                    <Label>Texto HTML do encontro</Label>
+                    <RichTextEditor
+                      value={encounterForm.bodyHtml ?? ''}
+                      onChange={(bodyHtml) =>
+                        setEncounterForm((current) => ({ ...current, bodyHtml }))
+                      }
+                    />
+                  </div>
+                </AdminFormSection>
+
+                <div className="sticky bottom-4 z-20">
+                  <div className="flex flex-col gap-3 rounded-[24px] border border-stone-200/80 bg-white/92 p-3 shadow-[0_18px_42px_rgba(74,61,35,0.12)] backdrop-blur md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-stone-800">
+                        {encounterForm.title ? 'Pronto para atualizar o encontro.' : 'Pronto para criar o encontro.'}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        Salve depois de revisar titulo, capa e HTML do conteudo.
+                      </p>
+                    </div>
+                    <Button
+                      className="w-full md:w-auto"
+                      onClick={() => void handleSaveEncounter()}
+                      disabled={saveEncounter.isPending || !encounterForm.groupId}
+                    >
+                      {saveEncounter.isPending ? 'Salvando...' : 'Salvar encontro'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
