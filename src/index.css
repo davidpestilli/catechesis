@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=UnifrakturCook:wght@700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 43 48% 96%;
+    --foreground: 35 21% 17%;
+    --card: 45 45% 99%;
+    --card-foreground: 35 21% 17%;
+    --primary: 146 35% 24%;
+    --primary-foreground: 42 75% 95%;
+    --secondary: 40 45% 81%;
+    --secondary-foreground: 25 25% 23%;
+    --muted: 40 30% 90%;
+    --muted-foreground: 30 11% 42%;
+    --accent: 18 44% 38%;
+    --accent-foreground: 42 75% 95%;
+    --border: 38 27% 82%;
+    --input: 38 27% 82%;
+    --ring: 146 35% 24%;
+    --radius: 1.6rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-body text-foreground antialiased;
+  }
+
+  #app {
+    min-height: 100vh;
+  }
+
+  a {
+    @apply transition-colors;
+  }
+
+  @keyframes hero-ken-burns-a {
+    0% {
+      transform: scale(1.06) translate3d(-1.5%, -1%, 0);
+    }
+    100% {
+      transform: scale(1.18) translate3d(2.5%, 1.5%, 0);
+    }
+  }
+
+  @keyframes hero-ken-burns-b {
+    0% {
+      transform: scale(1.08) translate3d(2%, -1.2%, 0);
+    }
+    100% {
+      transform: scale(1.2) translate3d(-2%, 1.6%, 0);
+    }
+  }
+
+  @keyframes hero-ken-burns-c {
+    0% {
+      transform: scale(1.05) translate3d(0, 2%, 0);
+    }
+    100% {
+      transform: scale(1.17) translate3d(0, -1.8%, 0);
+    }
+  }
+}
+
+@layer components {
+  .hero-slide {
+    @apply absolute inset-0 transition-opacity duration-[1600ms] ease-out;
+  }
+
+  .hero-slide-active {
+    opacity: 1;
+  }
+
+  .hero-slide-idle {
+    opacity: 0;
+  }
+
+  .hero-slide-image {
+    @apply h-full w-full object-cover will-change-transform;
+  }
+
+  .hero-slide-drift-a {
+    animation: hero-ken-burns-a 6.4s ease-out forwards;
+  }
+
+  .hero-slide-drift-b {
+    animation: hero-ken-burns-b 6.4s ease-out forwards;
+  }
+
+  .hero-slide-drift-c {
+    animation: hero-ken-burns-c 6.4s ease-out forwards;
+  }
+
+  .prose-catechesis {
+    @apply max-w-none text-lg leading-8 text-stone-700;
+  }
+
+  .prose-catechesis h1,
+  .prose-catechesis h2,
+  .prose-catechesis h3 {
+    @apply font-display text-stone-900;
+  }
+
+  .prose-catechesis h2 {
+    @apply mt-8 text-3xl;
+  }
+
+  .prose-catechesis p {
+    @apply my-4;
+  }
+
+  .prose-catechesis blockquote {
+    @apply my-6 rounded-[24px] border-l-4 border-primary bg-stone-100/80 px-5 py-4 italic text-stone-700;
+  }
+
+  .prose-catechesis img,
+  .prose-catechesis video,
+  .prose-catechesis iframe {
+    @apply my-6 rounded-[28px];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    transition: none;
+  }
+
+  .hero-slide-image,
+  .hero-slide-drift-a,
+  .hero-slide-drift-b,
+  .hero-slide-drift-c {
+    animation: none !important;
+    transform: none !important;
+  }
+}
