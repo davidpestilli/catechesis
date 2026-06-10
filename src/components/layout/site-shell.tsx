@@ -13,9 +13,13 @@ export function SiteShell() {
   return (
     <div className="min-h-screen bg-ink-glow text-foreground">
       <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/70 bg-[rgba(251,247,235,0.86)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
           <Link to="/" className="shrink-0">
-            <img src={catechesisIlluminura} alt="Catechesis" className="h-10 w-auto sm:h-11" />
+            <img
+              src={catechesisIlluminura}
+              alt="Catechesis"
+              className="h-[4.25rem] w-auto max-w-none sm:h-[5rem]"
+            />
           </Link>
           <div className="hidden items-center gap-2 md:ml-auto md:flex">
             {navigation.map(({ to, label }) => (
@@ -36,7 +40,7 @@ export function SiteShell() {
         </div>
       </div>
 
-      <main className="pt-[78px]">
+      <main className="pt-[88px]">
         <Outlet />
       </main>
 

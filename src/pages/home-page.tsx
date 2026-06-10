@@ -17,7 +17,7 @@ export function HomePage() {
     return <div className="px-4 py-16 text-stone-700">Carregando conteudo...</div>
   }
 
-    return (
+  return (
     <div className="pb-24">
       <HeroBanner settings={data.settings} images={landingImages} />
 

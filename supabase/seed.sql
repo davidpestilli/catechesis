@@ -76,6 +76,45 @@ values (
   2,
   'https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80',
   '<h2>Escuta e resposta</h2><p>A Palavra ilumina a vida e abre caminhos de conversao e partilha.</p>'
+),
+(
+  '22222222-2222-2222-2222-222222222223',
+  '99999999-9999-9999-9999-999999999991',
+  'jesus-nos-chama-pelo-nome',
+  'Jesus nos Chama pelo Nome',
+  'Encontros',
+  'Encontro sobre vocacao pessoal, escuta do Evangelho e resposta concreta.',
+  'Identidade e vocacao',
+  'Catequizandos iniciantes',
+  2,
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80',
+  '<h2>Chamado pessoal</h2><p>Jesus conhece cada pessoa pelo nome e chama para uma resposta livre, concreta e comunitaria.</p>'
+),
+(
+  '22222222-2222-2222-2222-222222222224',
+  '99999999-9999-9999-9999-999999999992',
+  'celebrar-e-fazer-memoria',
+  'Celebrar e Fazer Memoria',
+  'Encontros',
+  'Encontro sobre celebracao, memoria da fe e experiencia comunitaria.',
+  'Liturgia e comunidade',
+  'Turmas intermediarias',
+  2,
+  'https://images.unsplash.com/photo-1464638681273-0962e9b53566?auto=format&fit=crop&w=1200&q=80',
+  '<h2>Memoria viva</h2><p>A celebracao ajuda a comunidade a recordar a acao de Deus e responder com louvor, escuta e compromisso.</p>'
+),
+(
+  '22222222-2222-2222-2222-222222222225',
+  '99999999-9999-9999-9999-999999999992',
+  'servico-e-envio',
+  'Servico e Envio',
+  'Encontros',
+  'Encontro sobre caridade, servico e compromisso vivido durante a semana.',
+  'Missao crista',
+  'Turmas intermediarias',
+  3,
+  'https://images.unsplash.com/photo-1469571486292-b53601020f35?auto=format&fit=crop&w=1200&q=80',
+  '<h2>Fe que se torna gesto</h2><p>O encontro termina com um compromisso simples para a semana e com a recordacao de que a catequese continua fora da sala.</p>'
 )
 on conflict (id) do update
 set
@@ -123,6 +162,39 @@ values (
   'https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1200&q=80',
   true,
   2
+),
+(
+  '44444444-4444-4444-4444-444444444445',
+  '22222222-2222-2222-2222-222222222223',
+  'Roteiro do catequista',
+  'Sequencia sugerida para acolhida, Palavra e dinamica.',
+  'summary',
+  'pdf',
+  'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+  true,
+  1
+),
+(
+  '44444444-4444-4444-4444-444444444446',
+  '22222222-2222-2222-2222-222222222224',
+  'Esquema celebrativo',
+  'Sugestao simples para conduzir um momento orante com a turma.',
+  'summary',
+  'html',
+  '<h2>Momento celebrativo</h2><p>Inicie com um refrao, proclame a Palavra, abra uma breve partilha e conclua com uma prece comum.</p>',
+  false,
+  1
+),
+(
+  '44444444-4444-4444-4444-444444444447',
+  '22222222-2222-2222-2222-222222222225',
+  'Proposta de gesto concreto',
+  'Sugestoes de servico para viver durante a semana.',
+  'support',
+  'link',
+  'https://www.vatican.va',
+  false,
+  1
 )
 on conflict (id) do update
 set
@@ -141,6 +213,12 @@ values (
   '11111111-1111-1111-1111-111111111111',
   'Quiz do Encontro 1',
   'Revise as ideias centrais trabalhadas no encontro.'
+),
+(
+  '55555555-5555-5555-5555-555555555556',
+  '22222222-2222-2222-2222-222222222223',
+  'Quiz do chamado',
+  'Revise os pontos principais sobre vocacao e resposta.'
 )
 on conflict (id) do update
 set
@@ -154,6 +232,13 @@ values (
   '55555555-5555-5555-5555-555555555555',
   'Qual e a proposta principal deste primeiro encontro?',
   'O encontro apresenta a catequese como caminho de fe vivido em comunidade e resposta ao amor de Deus.',
+  1
+),
+(
+  '66666666-6666-6666-6666-666666666667',
+  '55555555-5555-5555-5555-555555555556',
+  'O que significa dizer que Jesus chama cada pessoa pelo nome?',
+  'Significa que a fe toca a historia pessoal de cada catequizando e pede uma resposta concreta.',
   1
 )
 on conflict (id) do update
@@ -169,7 +254,12 @@ values
   ('77777777-7777-7777-7777-777777777772', '66666666-6666-6666-6666-666666666666', 'Reconhecer a catequese como caminhada de fe em comunidade.', true, 2),
   ('77777777-7777-7777-7777-777777777773', '66666666-6666-6666-6666-666666666666', 'Substituir a vida comunitaria por estudo individual.', false, 3),
   ('77777777-7777-7777-7777-777777777774', '66666666-6666-6666-6666-666666666666', 'Tratar somente de regras disciplinares.', false, 4),
-  ('77777777-7777-7777-7777-777777777775', '66666666-6666-6666-6666-666666666666', 'Encerrar a preparacao liturgica do grupo.', false, 5)
+  ('77777777-7777-7777-7777-777777777775', '66666666-6666-6666-6666-666666666666', 'Encerrar a preparacao liturgica do grupo.', false, 5),
+  ('77777777-7777-7777-7777-777777777776', '66666666-6666-6666-6666-666666666667', 'Que a fe dispensa a comunidade.', false, 1),
+  ('77777777-7777-7777-7777-777777777777', '66666666-6666-6666-6666-666666666667', 'Que o chamado de Deus alcanca a historia pessoal de cada um.', true, 2),
+  ('77777777-7777-7777-7777-777777777778', '66666666-6666-6666-6666-666666666667', 'Que somente os catequistas sao chamados.', false, 3),
+  ('77777777-7777-7777-7777-777777777779', '66666666-6666-6666-6666-666666666667', 'Que basta decorar conteudos.', false, 4),
+  ('77777777-7777-7777-7777-777777777780', '66666666-6666-6666-6666-666666666667', 'Que nao ha necessidade de resposta.', false, 5)
 on conflict (id) do update
 set
   question_id = excluded.question_id,

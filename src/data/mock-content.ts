@@ -5,7 +5,11 @@ const groupOneId = createId()
 const groupTwoId = createId()
 const encounterOneId = createId()
 const encounterTwoId = createId()
+const encounterThreeId = createId()
+const encounterFourId = createId()
+const encounterFiveId = createId()
 const quizOneId = createId()
+const quizThreeId = createId()
 
 export const defaultCMSState: CMSState = {
   settings: {
@@ -94,6 +98,56 @@ export const defaultCMSState: CMSState = {
       },
     },
     {
+      id: encounterThreeId,
+      groupId: groupOneId,
+      slug: 'jesus-nos-chama-pelo-nome',
+      title: 'Jesus nos Chama pelo Nome',
+      illuminatedTitle: 'Encontros',
+      summary:
+        'Aprofunda o chamado pessoal de cada catequizando, com escuta do Evangelho e partilha da propria historia.',
+      theme: 'Identidade e vocacao',
+      audience: 'Catequizandos iniciantes',
+      order: 2,
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80',
+      bodyHtml:
+        '<h2>Chamado pessoal</h2><p>Jesus conhece cada pessoa pelo nome e chama para uma resposta livre, concreta e comunitaria.</p><p>Este encontro favorece testemunhos, escuta e um pequeno gesto de envio.</p>',
+      assets: [
+        {
+          id: createId(),
+          encounterId: encounterThreeId,
+          title: 'Roteiro do catequista',
+          description: 'Sequencia sugerida para acolhida, Palavra e dinamica.',
+          kind: 'summary',
+          view: 'pdf',
+          url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+          downloadable: true,
+          order: 1,
+        },
+      ],
+      quiz: {
+        id: quizThreeId,
+        encounterId: encounterThreeId,
+        title: 'Quiz do chamado',
+        description: 'Revise os pontos principais sobre vocacao e resposta.',
+        questions: [
+          {
+            id: createId(),
+            prompt: 'O que significa dizer que Jesus chama cada pessoa pelo nome?',
+            explanation:
+              'Significa que a fe nao e generica: ela toca a historia pessoal de cada catequizando e pede resposta concreta.',
+            options: [
+              { id: createId(), text: 'Que a fe dispensa a comunidade.', isCorrect: false },
+              { id: createId(), text: 'Que o chamado de Deus alcanca a historia pessoal de cada um.', isCorrect: true },
+              { id: createId(), text: 'Que somente os catequistas sao chamados.', isCorrect: false },
+              { id: createId(), text: 'Que basta decorar conteudos.', isCorrect: false },
+              { id: createId(), text: 'Que nao ha necessidade de resposta.', isCorrect: false },
+            ],
+          },
+        ],
+      },
+    },
+    {
       id: encounterTwoId,
       groupId: groupTwoId,
       slug: 'a-palavra-que-ilumina',
@@ -118,6 +172,64 @@ export const defaultCMSState: CMSState = {
           view: 'image',
           url: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=1200&q=80',
           downloadable: true,
+          order: 1,
+        },
+      ],
+    },
+    {
+      id: encounterFourId,
+      groupId: groupTwoId,
+      slug: 'celebrar-e-fazer-memoria',
+      title: 'Celebrar e Fazer Memoria',
+      illuminatedTitle: 'Encontros',
+      summary:
+        'Convida a turma a compreender a celebracao como memoria viva da fe e experiencia comunitaria.',
+      theme: 'Liturgia e comunidade',
+      audience: 'Turmas intermediarias',
+      order: 2,
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1464638681273-0962e9b53566?auto=format&fit=crop&w=1200&q=80',
+      bodyHtml:
+        '<h2>Memoria viva</h2><p>A celebracao ajuda a comunidade a recordar a acao de Deus e responder com louvor, escuta e compromisso.</p>',
+      assets: [
+        {
+          id: createId(),
+          encounterId: encounterFourId,
+          title: 'Esquema celebrativo',
+          description: 'Sugestao simples para conduzir um momento orante com a turma.',
+          kind: 'summary',
+          view: 'html',
+          url: '<h2>Momento celebrativo</h2><p>Inicie com um refrao, proclame a Palavra, abra uma breve partilha e conclua com uma prece comum.</p>',
+          downloadable: false,
+          order: 1,
+        },
+      ],
+    },
+    {
+      id: encounterFiveId,
+      groupId: groupTwoId,
+      slug: 'servico-e-envio',
+      title: 'Servico e Envio',
+      illuminatedTitle: 'Encontros',
+      summary:
+        'Organiza a passagem do encontro para a vida concreta, com foco em caridade, servico e testemunho.',
+      theme: 'Missao crista',
+      audience: 'Turmas intermediarias',
+      order: 3,
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1469571486292-b53601020f35?auto=format&fit=crop&w=1200&q=80',
+      bodyHtml:
+        '<h2>Fe que se torna gesto</h2><p>O encontro termina com um compromisso simples para a semana e com a recordacao de que a catequese continua fora da sala.</p>',
+      assets: [
+        {
+          id: createId(),
+          encounterId: encounterFiveId,
+          title: 'Proposta de gesto concreto',
+          description: 'Sugestoes de servico para viver durante a semana.',
+          kind: 'support',
+          view: 'link',
+          url: 'https://www.vatican.va',
+          downloadable: false,
           order: 1,
         },
       ],

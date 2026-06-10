@@ -36,6 +36,18 @@ function cloneDefaultState() {
   return structuredClone(defaultCMSState)
 }
 
+function buildFallbackState(partial?: Partial<CMSState>): CMSState {
+  const fallback = cloneDefaultState()
+
+  return {
+    settings: partial?.settings ?? fallback.settings,
+    groups: partial?.groups?.length ? partial.groups : fallback.groups,
+    encounters: partial?.encounters?.length ? partial.encounters : fallback.encounters,
+    articles: partial?.articles?.length ? partial.articles : fallback.articles,
+    updatedAt: partial?.updatedAt ?? new Date().toISOString(),
+  }
+}
+
 async function mapSupabaseState(): Promise<CMSState> {
   if (!supabase) {
     return cloneDefaultState()
@@ -126,7 +138,7 @@ async function mapSupabaseState(): Promise<CMSState> {
     assetsByEncounter.set(asset.encounter_id, list)
   }
 
-  return {
+  return buildFallbackState({
     settings: {
       heroVideoUrl: settingsRes.data?.value?.heroVideoUrl ?? defaultCMSState.settings.heroVideoUrl,
       heroPosterUrl:
@@ -163,7 +175,7 @@ async function mapSupabaseState(): Promise<CMSState> {
         publishedAt: article.published_at ?? new Date().toISOString(),
       })) ?? [],
     updatedAt: new Date().toISOString(),
-  }
+  })
 }
 
 async function uploadFile(file: File, folder: string) {
@@ -190,7 +202,11 @@ export const cmsService = {
       return getLocalCMSState()
     }
 
-    return mapSupabaseState()
+    try {
+      return await mapSupabaseState()
+    } catch {
+      return getLocalCMSState()
+    }
   },
 
   async saveEncounter(encounter: Partial<Encounter> & Pick<Encounter, 'title'>) {
