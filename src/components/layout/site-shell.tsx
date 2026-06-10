@@ -13,12 +13,12 @@ export function SiteShell() {
   return (
     <div className="min-h-screen bg-ink-glow text-foreground">
       <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/70 bg-[rgba(251,247,235,0.86)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
-          <Link to="/" className="shrink-0">
+        <div className="mx-auto flex h-[88px] max-w-6xl items-center justify-between gap-3 px-4">
+          <Link to="/" className="relative h-[68px] w-[230px] shrink-0 overflow-hidden">
             <img
               src={catechesisIlluminura}
               alt="Catechesis"
-              className="h-[4.25rem] w-auto max-w-none sm:h-[5rem]"
+              className="absolute left-0 top-1/2 h-[7.50rem] w-auto max-w-none -translate-y-1/2 sm:h-[5rem]"
             />
           </Link>
           <div className="hidden items-center gap-2 md:ml-auto md:flex">
