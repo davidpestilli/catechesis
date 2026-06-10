@@ -1,8 +1,7 @@
-import { BookOpen, Home, LockKeyhole, ScrollText } from 'lucide-react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { BookOpen, Home, ScrollText } from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
+import catechesisIlluminura from '@/assets/branding/catechesis-illuminura.png'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/providers/auth-provider'
 
 const navigation = [
   { to: '/', label: 'Inicio', icon: Home },
@@ -11,17 +10,14 @@ const navigation = [
 ]
 
 export function SiteShell() {
-  const { isAuthenticated, signOut } = useAuth()
-  const location = useLocation()
-
   return (
     <div className="min-h-screen bg-ink-glow text-foreground">
       <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/70 bg-[rgba(251,247,235,0.86)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="font-gothic text-2xl text-stone-900">
-            Catechesis
+          <Link to="/" className="shrink-0">
+            <img src={catechesisIlluminura} alt="Catechesis" className="h-10 w-auto sm:h-11" />
           </Link>
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 md:ml-auto md:flex">
             {navigation.map(({ to, label }) => (
               <NavLink
                 key={to}
@@ -36,25 +32,6 @@ export function SiteShell() {
                 {label}
               </NavLink>
             ))}
-          </div>
-          <div className="flex items-center gap-2">
-            {isAuthenticated ? (
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/admin">Painel</Link>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-                  Sair
-                </Button>
-              </>
-            ) : (
-              <Button asChild size="sm">
-                <Link to="/login" state={{ from: location }}>
-                  <LockKeyhole className="mr-2 h-4 w-4" />
-                  Entrar
-                </Link>
-              </Button>
-            )}
           </div>
         </div>
       </div>

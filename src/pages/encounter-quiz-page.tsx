@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,9 +6,12 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 
 export function EncounterQuizPage() {
-  const { slug } = useParams()
+  const { groupSlug, encounterSlug } = useParams()
   const { data } = useCMSState()
-  const encounter = data?.encounters.find((item) => item.slug === slug)
+  const group = data?.groups.find((item) => item.slug === groupSlug)
+  const encounter = data?.encounters.find(
+    (item) => item.slug === encounterSlug && item.groupId === group?.id,
+  )
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
 
@@ -26,7 +29,7 @@ export function EncounterQuizPage() {
     return (
       <section className="mx-auto max-w-3xl px-4 py-12">
         <Button asChild variant="ghost">
-          <Link to={`/encontros/${encounter.slug}`}>Voltar</Link>
+          <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>Voltar</Link>
         </Button>
         <Card className="mt-6">
           <CardTitle>Quiz ainda nao cadastrado</CardTitle>
@@ -38,20 +41,18 @@ export function EncounterQuizPage() {
     )
   }
 
-  const result = useMemo(() => {
-    const total = quiz.questions.length
-    const correct = quiz.questions.filter((question) => {
+  const result = {
+    total: quiz.questions.length,
+    correct: quiz.questions.filter((question) => {
       const selected = answers[question.id]
       return question.options.find((option) => option.id === selected)?.isCorrect
-    }).length
-
-    return { total, correct }
-  }, [answers, quiz.questions])
+    }).length,
+  }
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 pb-24">
       <Button asChild variant="ghost" className="mb-6">
-        <Link to={`/encontros/${encounter.slug}`}>
+        <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar ao encontro
         </Link>

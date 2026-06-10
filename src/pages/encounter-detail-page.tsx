@@ -6,9 +6,12 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 
 export function EncounterDetailPage() {
-  const { slug } = useParams()
+  const { groupSlug, encounterSlug } = useParams()
   const { data } = useCMSState()
-  const encounter = data?.encounters.find((item) => item.slug === slug)
+  const group = data?.groups.find((item) => item.slug === groupSlug)
+  const encounter = data?.encounters.find(
+    (item) => item.slug === encounterSlug && item.groupId === group?.id,
+  )
 
   if (data && !encounter) {
     return <Navigate to="/encontros" replace />
@@ -22,9 +25,17 @@ export function EncounterDetailPage() {
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 pb-24">
+      {group ? (
+        <Button asChild variant="ghost" className="mb-6">
+          <Link to={`/encontros/${group.slug}`}>Voltar para {group.name}</Link>
+        </Button>
+      ) : null}
       <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
         <div className="space-y-6">
-          <Badge>{encounter.theme || 'Encontro'}</Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge>{encounter.theme || 'Encontro'}</Badge>
+            {group ? <Badge className="bg-stone-900 text-stone-50">{group.name}</Badge> : null}
+          </div>
           <div>
             <h1 className="font-display text-4xl text-stone-900 sm:text-5xl">{encounter.title}</h1>
             <p className="mt-4 text-lg leading-8 text-stone-700">{encounter.summary}</p>
@@ -55,13 +66,13 @@ export function EncounterDetailPage() {
             </CardDescription>
             <div className="mt-5 grid gap-3">
               <Button asChild>
-                <Link to={`/encontros/${encounter.slug}/resumo`}>
+                <Link to={`/encontros/${groupSlug}/${encounter.slug}/resumo`}>
                   <ScrollText className="mr-2 h-4 w-4" />
                   Resumo do encontro
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to={`/encontros/${encounter.slug}/quiz`}>
+                <Link to={`/encontros/${groupSlug}/${encounter.slug}/quiz`}>
                   <FileQuestion className="mr-2 h-4 w-4" />
                   Quiz
                 </Link>
@@ -70,7 +81,7 @@ export function EncounterDetailPage() {
                 .filter((asset) => asset.kind === 'support')
                 .map((asset) => (
                   <Button key={asset.id} asChild variant="ghost" className="justify-start">
-                    <Link to={`/encontros/${encounter.slug}/material/${asset.id}`}>
+                    <Link to={`/encontros/${groupSlug}/${encounter.slug}/material/${asset.id}`}>
                       <Images className="mr-2 h-4 w-4" />
                       {asset.title}
                     </Link>

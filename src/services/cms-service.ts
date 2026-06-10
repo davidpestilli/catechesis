@@ -4,6 +4,7 @@ import { fileToDataUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import {
   getLocalCMSState,
+  upsertLocalGroup,
   saveLocalSettings,
   upsertLocalArticle,
   upsertLocalAsset,
@@ -13,6 +14,7 @@ import {
 import type {
   Article,
   CMSState,
+  ClassGroup,
   Encounter,
   EncounterAsset,
   EncounterQuiz,
@@ -39,8 +41,9 @@ async function mapSupabaseState(): Promise<CMSState> {
     return cloneDefaultState()
   }
 
-  const [encountersRes, assetsRes, quizzesRes, questionsRes, optionsRes, articlesRes, settingsRes] =
+  const [groupsRes, encountersRes, assetsRes, quizzesRes, questionsRes, optionsRes, articlesRes, settingsRes] =
     await Promise.all([
+      supabase.from('class_groups').select('*').order('order_index'),
       supabase.from('encounters').select('*').order('order_index'),
       supabase.from('encounter_assets').select('*').order('order_index'),
       supabase.from('quizzes').select('*'),
@@ -51,6 +54,7 @@ async function mapSupabaseState(): Promise<CMSState> {
     ])
 
   if (
+    groupsRes.error ||
     encountersRes.error ||
     assetsRes.error ||
     quizzesRes.error ||
@@ -60,6 +64,15 @@ async function mapSupabaseState(): Promise<CMSState> {
   ) {
     throw new Error('Nao foi possivel carregar o conteudo salvo no Supabase.')
   }
+
+  const groups =
+    (groupsRes.data ?? []).map((group) => ({
+      id: group.id,
+      slug: group.slug,
+      name: group.name,
+      battleCry: group.battle_cry ?? '',
+      order: group.order_index ?? 1,
+    })) ?? []
 
   const questionsByQuiz = new Map<string, { id: string; prompt: string; explanation: string; options: EncounterQuiz['questions'][number]['options'] }[]>()
 
@@ -120,9 +133,11 @@ async function mapSupabaseState(): Promise<CMSState> {
         settingsRes.data?.value?.heroPosterUrl ?? defaultCMSState.settings.heroPosterUrl,
       homeLead: sanitizeHomeLead(settingsRes.data?.value?.homeLead),
     },
+    groups: groups as ClassGroup[],
     encounters:
       (encountersRes.data ?? []).map((encounter) => ({
         id: encounter.id,
+        groupId: encounter.class_group_id ?? groups[0]?.id ?? '',
         slug: encounter.slug,
         title: encounter.title,
         illuminatedTitle: encounter.illuminated_title ?? 'Encontros',
@@ -185,6 +200,7 @@ export const cmsService = {
 
     const payload = {
       id: encounter.id,
+      class_group_id: encounter.groupId,
       slug: encounter.slug,
       title: encounter.title,
       illuminated_title: encounter.illuminatedTitle,
@@ -202,6 +218,7 @@ export const cmsService = {
 
     return {
       id: data.id,
+      groupId: data.class_group_id,
       slug: data.slug,
       title: data.title,
       illuminatedTitle: data.illuminated_title ?? 'Encontros',
@@ -214,6 +231,32 @@ export const cmsService = {
       assets: encounter.assets ?? [],
       quiz: encounter.quiz,
     } satisfies Encounter
+  },
+
+  async saveGroup(group: Partial<ClassGroup> & Pick<ClassGroup, 'name'>) {
+    if (!supabase) {
+      return upsertLocalGroup(group)
+    }
+
+    const payload = {
+      id: group.id,
+      slug: group.slug,
+      name: group.name,
+      battle_cry: group.battleCry,
+      order_index: group.order,
+    }
+
+    const { data, error } = await supabase.from('class_groups').upsert(payload).select('*').single()
+
+    if (error) throw new Error(error.message)
+
+    return {
+      id: data.id,
+      slug: data.slug,
+      name: data.name,
+      battleCry: data.battle_cry ?? '',
+      order: data.order_index ?? 1,
+    } satisfies ClassGroup
   },
 
   async saveArticle(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {

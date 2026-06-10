@@ -4,7 +4,12 @@ import type { Encounter } from '@/types/content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 
-export function EncounterCard({ encounter }: { encounter: Encounter }) {
+interface EncounterCardProps {
+  encounter: Encounter
+  href: string
+}
+
+export function EncounterCard({ encounter, href }: EncounterCardProps) {
   return (
     <Card className="group overflow-hidden p-0">
       {encounter.coverImageUrl ? (
@@ -31,7 +36,7 @@ export function EncounterCard({ encounter }: { encounter: Encounter }) {
           </span>
         </div>
         <Link
-          to={`/encontros/${encounter.slug}`}
+          to={href}
           className="inline-flex items-center gap-2 text-sm font-semibold text-stone-900"
         >
           Abrir encontro

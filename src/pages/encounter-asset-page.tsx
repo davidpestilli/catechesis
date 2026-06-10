@@ -6,9 +6,12 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 
 export function EncounterAssetPage() {
-  const { slug, assetId } = useParams()
+  const { groupSlug, encounterSlug, assetId } = useParams()
   const { data } = useCMSState()
-  const encounter = data?.encounters.find((item) => item.slug === slug)
+  const group = data?.groups.find((item) => item.slug === groupSlug)
+  const encounter = data?.encounters.find(
+    (item) => item.slug === encounterSlug && item.groupId === group?.id,
+  )
 
   if (data && !encounter) {
     return <Navigate to="/encontros" replace />
@@ -24,13 +27,13 @@ export function EncounterAssetPage() {
       : encounter.assets.find((item) => item.kind === 'summary')
 
   if (!asset && !encounter.bodyHtml) {
-    return <Navigate to={`/encontros/${encounter.slug}`} replace />
+    return <Navigate to={`/encontros/${groupSlug}/${encounter.slug}`} replace />
   }
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 pb-24">
       <Button asChild variant="ghost" className="mb-6">
-        <Link to={`/encontros/${encounter.slug}`}>
+        <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar ao encontro
         </Link>

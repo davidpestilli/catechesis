@@ -34,8 +34,17 @@ export interface EncounterQuiz {
   questions: QuizQuestion[]
 }
 
+export interface ClassGroup {
+  id: string
+  slug: string
+  name: string
+  battleCry: string
+  order: number
+}
+
 export interface Encounter {
   id: string
+  groupId: string
   slug: string
   title: string
   illuminatedTitle: string
@@ -68,6 +77,7 @@ export interface SiteSettings {
 }
 
 export interface CMSState {
+  groups: ClassGroup[]
   encounters: Encounter[]
   articles: Article[]
   settings: SiteSettings

@@ -9,8 +9,38 @@ values (
 )
 on conflict (key) do update set value = excluded.value;
 
+insert into public.class_groups (
+  id,
+  slug,
+  name,
+  battle_cry,
+  order_index
+)
+values (
+  '99999999-9999-9999-9999-999999999991',
+  'turma-sao-pedro',
+  'Turma Sao Pedro',
+  'Firmes na fe, alegres na missao.',
+  1
+),
+(
+  '99999999-9999-9999-9999-999999999992',
+  'turma-sao-paulo',
+  'Turma Sao Paulo',
+  'Anunciar, servir e caminhar juntos.',
+  2
+)
+on conflict (id) do update
+set
+  slug = excluded.slug,
+  name = excluded.name,
+  battle_cry = excluded.battle_cry,
+  order_index = excluded.order_index,
+  updated_at = timezone('utc', now());
+
 insert into public.encounters (
   id,
+  class_group_id,
   slug,
   title,
   illuminated_title,
@@ -23,6 +53,7 @@ insert into public.encounters (
 )
 values (
   '11111111-1111-1111-1111-111111111111',
+  '99999999-9999-9999-9999-999999999991',
   'o-chamado-da-fe',
   'O Chamado da Fe',
   'Encontros',
@@ -35,6 +66,7 @@ values (
 ),
 (
   '22222222-2222-2222-2222-222222222222',
+  '99999999-9999-9999-9999-999999999992',
   'a-palavra-que-ilumina',
   'A Palavra que Ilumina',
   'Encontros',
@@ -47,6 +79,7 @@ values (
 )
 on conflict (id) do update
 set
+  class_group_id = excluded.class_group_id,
   slug = excluded.slug,
   title = excluded.title,
   illuminated_title = excluded.illuminated_title,

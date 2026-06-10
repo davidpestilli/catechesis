@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cmsService } from '@/services/cms-service'
 import type {
   Article,
+  ClassGroup,
   Encounter,
   EncounterAsset,
   EncounterQuiz,
@@ -20,6 +21,14 @@ export function useSaveEncounter() {
   return useMutation({
     mutationFn: (encounter: Partial<Encounter> & Pick<Encounter, 'title'>) =>
       cmsService.saveEncounter(encounter),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cms-state'] }),
+  })
+}
+
+export function useSaveGroup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (group: Partial<ClassGroup> & Pick<ClassGroup, 'name'>) => cmsService.saveGroup(group),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cms-state'] }),
   })
 }

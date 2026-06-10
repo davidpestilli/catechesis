@@ -14,15 +14,34 @@ import {
   useSaveArticle,
   useSaveAsset,
   useSaveEncounter,
+  useSaveGroup,
   useSaveQuiz,
   useSaveSettings,
 } from '@/hooks/use-cms'
 import { createId, slugify } from '@/lib/utils'
-import type { Article, Encounter, EncounterAsset, EncounterQuiz, SiteSettings } from '@/types/content'
+import type {
+  Article,
+  ClassGroup,
+  Encounter,
+  EncounterAsset,
+  EncounterQuiz,
+  SiteSettings,
+} from '@/types/content'
 
-function emptyEncounter(): Encounter {
+function emptyGroup(): ClassGroup {
   return {
     id: createId(),
+    slug: '',
+    name: '',
+    battleCry: '',
+    order: 1,
+  }
+}
+
+function emptyEncounter(groupId = ''): Encounter {
+  return {
+    id: createId(),
+    groupId,
     slug: '',
     title: '',
     illuminatedTitle: 'Encontros',
@@ -73,12 +92,14 @@ function emptyQuiz(encounterId = ''): EncounterQuiz {
 
 export function AdminDashboardPage() {
   const { data } = useCMSState()
+  const saveGroup = useSaveGroup()
   const saveEncounter = useSaveEncounter()
   const saveArticle = useSaveArticle()
   const saveAsset = useSaveAsset()
   const saveQuiz = useSaveQuiz()
   const saveSettings = useSaveSettings()
 
+  const [groupForm, setGroupForm] = useState<ClassGroup>(emptyGroup())
   const [encounterForm, setEncounterForm] = useState<Encounter>(emptyEncounter())
   const [articleForm, setArticleForm] = useState<Article>(emptyArticle())
   const [quizForm, setQuizForm] = useState<EncounterQuiz>(emptyQuiz())
@@ -96,19 +117,55 @@ export function AdminDashboardPage() {
   })
   const [assetFile, setAssetFile] = useState<File | null>(null)
 
+  const groupOptions = useMemo(
+    () => [...(data?.groups ?? [])].sort((first, second) => first.order - second.order),
+    [data],
+  )
+  const encounterOptions = useMemo(
+    () =>
+      [...(data?.encounters ?? [])].sort((first, second) => {
+        if (first.groupId === second.groupId) {
+          return first.order - second.order
+        }
+
+        return first.groupId.localeCompare(second.groupId)
+      }),
+    [data],
+  )
+  const groupNameById = useMemo(
+    () => new Map(groupOptions.map((group) => [group.id, group.name])),
+    [groupOptions],
+  )
+
   useEffect(() => {
     if (!data) return
     if (!settingsForm) setSettingsForm(data.settings)
-    if (!assetForm.encounterId) {
-      setAssetForm((current) => ({ ...current, encounterId: data.encounters[0]?.id ?? '' }))
-      setQuizForm((current) => ({ ...current, encounterId: data.encounters[0]?.id ?? current.encounterId }))
-    }
-  }, [assetForm.encounterId, data, settingsForm])
 
-  const encounterOptions = useMemo(() => data?.encounters ?? [], [data])
+    const firstGroupId = groupOptions[0]?.id ?? ''
+    const firstEncounterId = encounterOptions[0]?.id ?? ''
+
+    setEncounterForm((current) =>
+      current.groupId || !firstGroupId ? current : { ...current, groupId: firstGroupId },
+    )
+    setAssetForm((current) =>
+      current.encounterId || !firstEncounterId ? current : { ...current, encounterId: firstEncounterId },
+    )
+    setQuizForm((current) =>
+      current.encounterId || !firstEncounterId ? current : { ...current, encounterId: firstEncounterId },
+    )
+  }, [data, encounterOptions, groupOptions, settingsForm])
 
   if (!data || !settingsForm) {
     return <div className="px-4 py-16 text-stone-700">Carregando painel...</div>
+  }
+
+  async function handleSaveGroup() {
+    await saveGroup.mutateAsync({
+      ...groupForm,
+      slug: slugify(groupForm.slug || groupForm.name),
+    })
+    setGroupForm(emptyGroup())
+    toast.success('Turma salva.')
   }
 
   async function handleSaveEncounter() {
@@ -116,7 +173,7 @@ export function AdminDashboardPage() {
       ...encounterForm,
       slug: slugify(encounterForm.slug || encounterForm.title),
     })
-    setEncounterForm(emptyEncounter())
+    setEncounterForm(emptyEncounter(groupOptions[0]?.id ?? ''))
     toast.success('Encontro salvo.')
   }
 
@@ -172,8 +229,9 @@ export function AdminDashboardPage() {
         <Badge>Local-first com fallback em demo</Badge>
       </div>
 
-      <Tabs defaultValue="encounters" className="space-y-6">
+      <Tabs defaultValue="groups" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="groups">Turmas</TabsTrigger>
           <TabsTrigger value="encounters">Encontros</TabsTrigger>
           <TabsTrigger value="assets">Materiais</TabsTrigger>
           <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
@@ -181,12 +239,77 @@ export function AdminDashboardPage() {
           <TabsTrigger value="settings">Landing</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="groups">
+          <div className="grid gap-6 lg:grid-cols-[0.82fr_1.18fr]">
+            <Card>
+              <CardTitle>Turmas existentes</CardTitle>
+              <div className="mt-5 space-y-3">
+                {groupOptions.map((group) => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => setGroupForm(group)}
+                    className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left"
+                  >
+                    <p className="font-semibold text-stone-900">{group.name}</p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      {group.battleCry || 'Sem brado cadastrado.'}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <CardTitle>{groupForm.name ? 'Editar turma' : 'Criar nova turma'}</CardTitle>
+              <CardDescription className="mt-2">
+                Cada turma concentra seus proprios encontros e exibe um brado proprio na pagina publica.
+              </CardDescription>
+              <div className="mt-5 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Nome da turma</Label>
+                    <Input
+                      value={groupForm.name}
+                      onChange={(event) =>
+                        setGroupForm((current) => ({ ...current, name: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Slug</Label>
+                    <Input
+                      value={groupForm.slug}
+                      onChange={(event) =>
+                        setGroupForm((current) => ({ ...current, slug: event.target.value }))
+                      }
+                      placeholder="gerado a partir do nome"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Brado</Label>
+                  <Textarea
+                    value={groupForm.battleCry}
+                    onChange={(event) =>
+                      setGroupForm((current) => ({ ...current, battleCry: event.target.value }))
+                    }
+                  />
+                </div>
+                <Button onClick={() => void handleSaveGroup()} disabled={saveGroup.isPending}>
+                  {saveGroup.isPending ? 'Salvando...' : 'Salvar turma'}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="encounters">
           <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
             <Card>
               <CardTitle>Encontros existentes</CardTitle>
               <div className="mt-5 space-y-3">
-                {data.encounters.map((encounter) => (
+                {encounterOptions.map((encounter) => (
                   <button
                     key={encounter.id}
                     type="button"
@@ -194,7 +317,9 @@ export function AdminDashboardPage() {
                     className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left"
                   >
                     <p className="font-semibold text-stone-900">{encounter.title}</p>
-                    <p className="mt-1 text-sm text-stone-600">{encounter.summary}</p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      {groupNameById.get(encounter.groupId) || 'Turma nao localizada'}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -202,9 +327,25 @@ export function AdminDashboardPage() {
             <Card>
               <CardTitle>{encounterForm.title ? 'Editar encontro' : 'Criar novo encontro'}</CardTitle>
               <CardDescription className="mt-2">
-                Base para resumo, material de apoio, quiz e texto interno em HTML.
+                O encontro agora pertence a uma turma antes de receber resumo, material de apoio e quiz.
               </CardDescription>
               <div className="mt-5 grid gap-4">
+                <div className="space-y-2">
+                  <Label>Turma</Label>
+                  <select
+                    value={encounterForm.groupId}
+                    onChange={(event) =>
+                      setEncounterForm((current) => ({ ...current, groupId: event.target.value }))
+                    }
+                    className="h-11 rounded-2xl border border-input bg-white px-4"
+                  >
+                    {groupOptions.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Titulo</Label>
@@ -271,7 +412,10 @@ export function AdminDashboardPage() {
                     onChange={(bodyHtml) => setEncounterForm((current) => ({ ...current, bodyHtml }))}
                   />
                 </div>
-                <Button onClick={() => void handleSaveEncounter()} disabled={saveEncounter.isPending}>
+                <Button
+                  onClick={() => void handleSaveEncounter()}
+                  disabled={saveEncounter.isPending || !encounterForm.groupId}
+                >
                   {saveEncounter.isPending ? 'Salvando...' : 'Salvar encontro'}
                 </Button>
               </div>
@@ -284,11 +428,13 @@ export function AdminDashboardPage() {
             <Card>
               <CardTitle>Materiais ja cadastrados</CardTitle>
               <div className="mt-5 space-y-4">
-                {data.encounters.flatMap((encounter) =>
+                {encounterOptions.flatMap((encounter) =>
                   encounter.assets.map((asset) => (
                     <div key={asset.id} className="rounded-[22px] border border-stone-200 bg-stone-50 p-4">
                       <p className="font-semibold text-stone-900">{asset.title}</p>
-                      <p className="mt-1 text-sm text-stone-600">{encounter.title}</p>
+                      <p className="mt-1 text-sm text-stone-600">
+                        {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
+                      </p>
                     </div>
                   )),
                 )}
@@ -311,7 +457,7 @@ export function AdminDashboardPage() {
                   >
                     {encounterOptions.map((encounter) => (
                       <option key={encounter.id} value={encounter.id}>
-                        {encounter.title}
+                        {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
                       </option>
                     ))}
                   </select>
@@ -382,7 +528,7 @@ export function AdminDashboardPage() {
                     }
                   />
                 </div>
-                <Button onClick={() => void handleSaveAsset()} disabled={saveAsset.isPending}>
+                <Button onClick={() => void handleSaveAsset()} disabled={saveAsset.isPending || !assetForm.encounterId}>
                   {saveAsset.isPending ? 'Salvando...' : 'Salvar material'}
                 </Button>
               </div>
@@ -406,7 +552,7 @@ export function AdminDashboardPage() {
                 >
                   {encounterOptions.map((encounter) => (
                     <option key={encounter.id} value={encounter.id}>
-                      {encounter.title}
+                      {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
                     </option>
                   ))}
                 </select>
@@ -533,7 +679,7 @@ export function AdminDashboardPage() {
               >
                 Adicionar pergunta
               </Button>
-              <Button onClick={() => void handleSaveQuiz()} disabled={saveQuiz.isPending}>
+              <Button onClick={() => void handleSaveQuiz()} disabled={saveQuiz.isPending || !quizForm.encounterId}>
                 {saveQuiz.isPending ? 'Salvando...' : 'Salvar quiz'}
               </Button>
             </div>

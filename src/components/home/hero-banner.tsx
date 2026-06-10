@@ -1,8 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowDownRight, BookMarked } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import catechesisIlluminura from '@/assets/branding/catechesis-illuminura.png'
 import type { LandingImage } from '@/data/landing-images'
 import type { SiteSettings } from '@/types/content'
 
@@ -64,26 +60,15 @@ export function HeroBanner({ settings, images }: HeroBannerProps) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(235,213,151,0.22),transparent_26%),radial-gradient(circle_at_82%_72%,rgba(255,244,214,0.14),transparent_24%)]" />
         <div className="relative z-10 mx-auto flex min-h-[90svh] max-w-6xl flex-col justify-end px-4 pb-12 pt-28 text-stone-50 sm:pb-16">
           <div className="max-w-xl">
-            <img
-              src={catechesisIlluminura}
-              alt="Catechesis"
-              className="-ml-20 -mb-[8rem] h-auto w-[clamp(22rem,70vw,72rem)] max-w-full sm:-mb-[13rem]"
-            />
-            <p className="mt-4 max-w-lg text-lg leading-7 text-stone-100/90">{settings.homeLead}</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link to="/encontros">
-                  Explorar encontros
-                  <ArrowDownRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/artigos">
-                  <BookMarked className="mr-2 h-4 w-4" />
-                  Ler artigos
-                </Link>
-              </Button>
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-100/80">
+              Formacao catequetica
+            </p>
+            <h1 className="mt-4 font-display text-4xl leading-tight text-stone-50 sm:text-6xl">
+              Conteudo organizado por turma, encontro e apoio pastoral.
+            </h1>
+            <p className="mt-5 max-w-lg text-lg leading-7 text-stone-100/90">
+              {settings.homeLead || 'Acesse cada turma, abra seus encontros e acompanhe materiais, artigos e quizzes em um fluxo claro para celular.'}
+            </p>
           </div>
         </div>
       </div>

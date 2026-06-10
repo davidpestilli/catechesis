@@ -1,6 +1,8 @@
 import type { CMSState } from '@/types/content'
 import { createId } from '@/lib/utils'
 
+const groupOneId = createId()
+const groupTwoId = createId()
 const encounterOneId = createId()
 const encounterTwoId = createId()
 const quizOneId = createId()
@@ -13,9 +15,26 @@ export const defaultCMSState: CMSState = {
       'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
     homeLead: '',
   },
+  groups: [
+    {
+      id: groupOneId,
+      slug: 'turma-sao-pedro',
+      name: 'Turma Sao Pedro',
+      battleCry: 'Firmes na fe, alegres na missao.',
+      order: 1,
+    },
+    {
+      id: groupTwoId,
+      slug: 'turma-sao-paulo',
+      name: 'Turma Sao Paulo',
+      battleCry: 'Anunciar, servir e caminhar juntos.',
+      order: 2,
+    },
+  ],
   encounters: [
     {
       id: encounterOneId,
+      groupId: groupOneId,
       slug: 'o-chamado-da-fe',
       title: 'O Chamado da Fe',
       illuminatedTitle: 'Encontros',
@@ -76,6 +95,7 @@ export const defaultCMSState: CMSState = {
     },
     {
       id: encounterTwoId,
+      groupId: groupTwoId,
       slug: 'a-palavra-que-ilumina',
       title: 'A Palavra que Ilumina',
       illuminatedTitle: 'Encontros',
