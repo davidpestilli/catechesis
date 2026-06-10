@@ -16,6 +16,7 @@ dist-ssr
 !.env.example
 worker/.dev.vars
 vite-dev.log
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
