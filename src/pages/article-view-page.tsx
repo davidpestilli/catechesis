@@ -1,8 +1,7 @@
 import DOMPurify from 'dompurify'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { Navigate, useParams } from 'react-router-dom'
+import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 import { formatDate } from '@/lib/utils'
@@ -22,12 +21,7 @@ export function ArticleViewPage() {
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 pb-24">
-      <Button asChild variant="ghost" className="mb-6">
-        <Link to="/artigos">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar aos artigos
-        </Link>
-      </Button>
+      <FloatingBackButton to="/artigos" label="Voltar aos artigos" />
 
       <Card className="overflow-hidden p-0">
         {article.coverImageUrl ? (

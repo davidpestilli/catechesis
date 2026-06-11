@@ -1,0 +1,1 @@
+supabase/migrations/20260521153000_distribuidor_acoes_lote.sql;

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -18,18 +17,27 @@ import {
   useSaveQuiz,
   useSaveSettings,
 } from '@/hooks/use-cms'
-import { createId, slugify } from '@/lib/utils'
+import { cmsService } from '@/services/cms-service'
+import { materialCategoryConfigs } from '@/lib/encounter-materials'
+import { cn, createId, fileToDataUrl, slugify } from '@/lib/utils'
 import type {
   Article,
   ClassGroup,
   Encounter,
   EncounterAsset,
   EncounterQuiz,
+  LandingImageMotion,
+  MaterialCategory,
   SiteSettings,
 } from '@/types/content'
 
 const adminSelectClassName =
   'h-11 w-full rounded-2xl border border-input bg-white/90 px-4 text-sm text-stone-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20'
+const landingMotionOptions: { value: LandingImageMotion; label: string }[] = [
+  { value: 'drift-a', label: 'Movimento A' },
+  { value: 'drift-b', label: 'Movimento B' },
+  { value: 'drift-c', label: 'Movimento C' },
+]
 
 function AdminFormSection({
   title,
@@ -48,6 +56,28 @@ function AdminFormSection({
       </div>
       <div className="grid gap-4">{children}</div>
     </section>
+  )
+}
+
+function AdminField({
+  label,
+  hint,
+  children,
+  className,
+}: {
+  label: string
+  hint?: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('space-y-2.5', className)}>
+      <div className="space-y-1">
+        <Label>{label}</Label>
+        {hint ? <p className="text-sm leading-5 text-stone-500">{hint}</p> : null}
+      </div>
+      {children}
+    </div>
   )
 }
 
@@ -113,6 +143,15 @@ function emptyQuiz(encounterId = ''): EncounterQuiz {
   }
 }
 
+function emptyLandingSlide() {
+  return {
+    id: createId(),
+    src: '',
+    alt: '',
+    motion: 'drift-a' as LandingImageMotion,
+  }
+}
+
 export function AdminDashboardPage() {
   const { data } = useCMSState()
   const saveGroup = useSaveGroup()
@@ -132,13 +171,15 @@ export function AdminDashboardPage() {
     encounterId: '',
     title: '',
     description: '',
-    kind: 'summary',
-    view: 'pdf',
+    kind: 'support',
+    view: 'link',
     url: '',
-    downloadable: true,
+    materialCategory: 'website',
+    downloadable: false,
     order: 1,
   })
   const [assetFile, setAssetFile] = useState<File | null>(null)
+  const [pendingSlideFiles, setPendingSlideFiles] = useState<Record<string, { file: File; previewUrl: string }>>({})
 
   const groupOptions = useMemo(
     () => [...(data?.groups ?? [])].sort((first, second) => first.order - second.order),
@@ -194,7 +235,7 @@ export function AdminDashboardPage() {
   async function handleSaveEncounter() {
     await saveEncounter.mutateAsync({
       ...encounterForm,
-      slug: slugify(encounterForm.slug || encounterForm.title),
+      slug: slugify(encounterForm.title),
     })
     setEncounterForm(emptyEncounter(groupOptions[0]?.id ?? ''))
     toast.success('Encontro salvo.')
@@ -213,7 +254,7 @@ export function AdminDashboardPage() {
   async function handleSaveAsset() {
     await saveAsset.mutateAsync({
       asset: assetForm,
-      file: assetFile,
+      file: assetForm.kind === 'support' ? null : assetFile,
     })
     setAssetFile(null)
     setAssetForm({
@@ -221,10 +262,11 @@ export function AdminDashboardPage() {
       encounterId: encounterOptions[0]?.id ?? '',
       title: '',
       description: '',
-      kind: 'summary',
-      view: 'pdf',
+      kind: 'support',
+      view: 'link',
       url: '',
-      downloadable: true,
+      materialCategory: 'website',
+      downloadable: false,
       order: 1,
     })
     toast.success('Material salvo.')
@@ -236,26 +278,123 @@ export function AdminDashboardPage() {
     toast.success('Quiz salvo.')
   }
 
-  async function handleSaveSettings() {
-    if (!settingsForm) return
-    await saveSettings.mutateAsync(settingsForm)
-    toast.success('Configuracoes atualizadas.')
+  async function handleSelectSlideFile(slideId: string, file?: File | null) {
+    if (!file) {
+      setPendingSlideFiles((current) => {
+        const next = { ...current }
+        delete next[slideId]
+        return next
+      })
+      return
+    }
+
+    const previewUrl = await fileToDataUrl(file)
+    setPendingSlideFiles((current) => ({
+      ...current,
+      [slideId]: { file, previewUrl },
+    }))
   }
+
+  function updateLandingSlide(
+    slideId: string,
+    patch: Partial<SiteSettings['landingImages'][number]>,
+  ) {
+    setSettingsForm((current) =>
+      current
+        ? {
+            ...current,
+            landingImages: current.landingImages.map((slide) =>
+              slide.id === slideId ? { ...slide, ...patch } : slide,
+            ),
+          }
+        : current,
+    )
+  }
+
+  function addLandingSlide() {
+    setSettingsForm((current) =>
+      current
+        ? {
+            ...current,
+            landingImages: [...current.landingImages, emptyLandingSlide()],
+          }
+        : current,
+    )
+  }
+
+  function removeLandingSlide(slideId: string) {
+    setSettingsForm((current) =>
+      current
+        ? {
+            ...current,
+            landingImages: current.landingImages.filter((slide) => slide.id !== slideId),
+          }
+        : current,
+    )
+    setPendingSlideFiles((current) => {
+      const next = { ...current }
+      delete next[slideId]
+      return next
+    })
+  }
+
+  function moveLandingSlide(slideId: string, direction: -1 | 1) {
+    setSettingsForm((current) => {
+      if (!current) return current
+
+      const index = current.landingImages.findIndex((slide) => slide.id === slideId)
+      const nextIndex = index + direction
+
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.landingImages.length) {
+        return current
+      }
+
+      const nextSlides = [...current.landingImages]
+      const [slide] = nextSlides.splice(index, 1)
+      nextSlides.splice(nextIndex, 0, slide)
+
+      return {
+        ...current,
+        landingImages: nextSlides,
+      }
+    })
+  }
+
+  async function handleSaveSlideshow() {
+    const currentSettings = settingsForm
+    if (!currentSettings) return
+
+    const uploadedSlides = await Promise.all(
+      currentSettings.landingImages.map(async (slide) => {
+        const pendingFile = pendingSlideFiles[slide.id]
+        if (!pendingFile) return slide
+
+        const src = await cmsService.uploadMedia(pendingFile.file, 'landing')
+        return { ...slide, src }
+      }),
+    )
+
+    const nextSettings: SiteSettings = {
+      ...currentSettings,
+      landingImages: uploadedSlides.filter((slide) => slide.src.trim().length > 0),
+    }
+
+    await saveSettings.mutateAsync(nextSettings)
+    setSettingsForm(nextSettings)
+    setPendingSlideFiles({})
+    toast.success('Slideshow atualizado.')
+  }
+
+  const isSupportLink = assetForm.kind === 'support'
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 pb-12 md:py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-stone-500">
             gestao de conteudo
           </p>
-          <h1 className="font-display text-4xl text-stone-900">Edicao do Catechesis</h1>
-          <p className="mt-2 text-sm leading-6 text-stone-600">
-            O painel administrativo agora fica separado da navegacao publica e concentra a edicao em
-            blocos mais claros para reduzir ruido visual no mobile.
-          </p>
         </div>
-        <Badge>Local-first com fallback em demo</Badge>
       </div>
 
       <Tabs defaultValue="groups" className="space-y-6">
@@ -264,8 +403,8 @@ export function AdminDashboardPage() {
           <TabsTrigger className="shrink-0" value="encounters">Encontros</TabsTrigger>
           <TabsTrigger className="shrink-0" value="assets">Materiais</TabsTrigger>
           <TabsTrigger className="shrink-0" value="quizzes">Quizzes</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="slideshow">Slideshow</TabsTrigger>
           <TabsTrigger className="shrink-0" value="articles">Artigos</TabsTrigger>
-          <TabsTrigger className="shrink-0" value="settings">Landing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="groups">
@@ -361,7 +500,7 @@ export function AdminDashboardPage() {
               <div className="mt-6 space-y-5">
                 <AdminFormSection
                   title="Identidade do encontro"
-                  description="Defina a turma, o titulo e os dados que ajudam a localizar o encontro no painel e no site."
+                  description="Defina a turma, o titulo e o tema do encontro. O link interno e gerado automaticamente a partir do titulo."
                 >
                   <div className="space-y-2">
                     <Label>Turma</Label>
@@ -379,46 +518,23 @@ export function AdminDashboardPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Titulo</Label>
-                      <Input
-                        value={encounterForm.title}
-                        onChange={(event) =>
-                          setEncounterForm((current) => ({ ...current, title: event.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Slug</Label>
-                      <Input
-                        value={encounterForm.slug}
-                        onChange={(event) =>
-                          setEncounterForm((current) => ({ ...current, slug: event.target.value }))
-                        }
-                        placeholder="gerado a partir do titulo"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Titulo</Label>
+                    <Input
+                      value={encounterForm.title}
+                      onChange={(event) =>
+                        setEncounterForm((current) => ({ ...current, title: event.target.value }))
+                      }
+                    />
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Tema</Label>
-                      <Input
-                        value={encounterForm.theme}
-                        onChange={(event) =>
-                          setEncounterForm((current) => ({ ...current, theme: event.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Publico</Label>
-                      <Input
-                        value={encounterForm.audience}
-                        onChange={(event) =>
-                          setEncounterForm((current) => ({ ...current, audience: event.target.value }))
-                        }
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Tema</Label>
+                    <Input
+                      value={encounterForm.theme}
+                      onChange={(event) =>
+                        setEncounterForm((current) => ({ ...current, theme: event.target.value }))
+                      }
+                    />
                   </div>
                 </AdminFormSection>
 
@@ -470,11 +586,11 @@ export function AdminDashboardPage() {
                 </AdminFormSection>
 
                 <AdminFormSection
-                  title="Conteudo principal"
-                  description="A barra de ferramentas foi compactada para mobile e o editor agora segue a mesma linguagem visual do painel."
+                  title="Resumo do encontro em HTML"
+                  description="Este e o mesmo editor rico usado em Artigos. O texto salvo aqui abre no modal publico de Resumo do encontro."
                 >
                   <div className="space-y-2">
-                    <Label>Texto HTML do encontro</Label>
+                    <Label>Texto HTML do resumo</Label>
                     <RichTextEditor
                       value={encounterForm.bodyHtml ?? ''}
                       onChange={(bodyHtml) =>
@@ -516,106 +632,191 @@ export function AdminDashboardPage() {
                 {encounterOptions.flatMap((encounter) =>
                   encounter.assets.map((asset) => (
                     <div key={asset.id} className="rounded-[22px] border border-stone-200 bg-stone-50 p-4">
-                      <p className="font-semibold text-stone-900">{asset.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-stone-900">{asset.title}</p>
+                        {asset.kind === 'support' && asset.materialCategory ? (
+                          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                            {materialCategoryConfigs.find((category) => category.key === asset.materialCategory)?.label ?? asset.materialCategory}
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-1 text-sm text-stone-600">
                         {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
                       </p>
+                      {asset.description ? (
+                        <p className="mt-2 text-sm leading-6 text-stone-500">{asset.description}</p>
+                      ) : null}
                     </div>
                   )),
                 )}
               </div>
             </Card>
             <Card>
-              <CardTitle>Subir PDF, imagem ou link</CardTitle>
+              <CardTitle>Materiais e downloads</CardTitle>
               <CardDescription className="mt-2">
-                Salve o resumo do encontro ou materiais de apoio separados para consulta e download.
+                Cadastre links por categoria para o modal publico de Materiais ou um arquivo opcional para download do resumo.
               </CardDescription>
-              <div className="mt-5 grid gap-4">
-                <div className="space-y-2">
-                  <Label>Encontro</Label>
-                  <select
-                    value={assetForm.encounterId}
-                    onChange={(event) =>
-                      setAssetForm((current) => ({ ...current, encounterId: event.target.value }))
-                    }
-                    className="h-11 rounded-2xl border border-input bg-white px-4"
-                  >
-                    {encounterOptions.map((encounter) => (
-                      <option key={encounter.id} value={encounter.id}>
-                        {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
-                      </option>
-                    ))}
-                  </select>
+              <div className="mt-6 space-y-5">
+                <div className="rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-stone-700">
+                  <p className="font-semibold text-stone-900">Como este bloco funciona</p>
+                  <p className="mt-1">
+                    O resumo em HTML continua na aba <strong>Encontros</strong>. Aqui voce escolhe entre um arquivo de resumo para download ou links que aparecerao no modal <strong>Materiais</strong>.
+                  </p>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Titulo</Label>
-                    <Input
-                      value={assetForm.title}
-                      onChange={(event) => setAssetForm((current) => ({ ...current, title: event.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo</Label>
-                    <select
-                      value={assetForm.kind}
-                      onChange={(event) =>
-                        setAssetForm((current) => ({
-                          ...current,
-                          kind: event.target.value as EncounterAsset['kind'],
-                        }))
-                      }
-                      className="h-11 rounded-2xl border border-input bg-white px-4"
+                <AdminFormSection
+                  title="Vinculo do material"
+                  description="Primeiro escolha o encontro e o tipo de item para o sistema liberar apenas os campos relevantes."
+                >
+                  <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+                    <AdminField
+                      label="Encontro"
+                      hint="O material sera exibido somente dentro deste encontro."
                     >
-                      <option value="summary">Resumo do encontro</option>
-                      <option value="support">Material de apoio</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Visualizacao</Label>
-                    <select
-                      value={assetForm.view}
-                      onChange={(event) =>
-                        setAssetForm((current) => ({
-                          ...current,
-                          view: event.target.value as EncounterAsset['view'],
-                        }))
-                      }
-                      className="h-11 rounded-2xl border border-input bg-white px-4"
+                      <select
+                        value={assetForm.encounterId}
+                        onChange={(event) =>
+                          setAssetForm((current) => ({ ...current, encounterId: event.target.value }))
+                        }
+                        className={adminSelectClassName}
+                      >
+                        {encounterOptions.map((encounter) => (
+                          <option key={encounter.id} value={encounter.id}>
+                            {(groupNameById.get(encounter.groupId) || 'Turma') + ' / ' + encounter.title}
+                          </option>
+                        ))}
+                      </select>
+                    </AdminField>
+
+                    <AdminField
+                      label="Tipo"
+                      hint="Escolha se este item abre no modal Materiais ou vira um arquivo de download."
                     >
-                      <option value="pdf">PDF</option>
-                      <option value="image">Imagem</option>
-                      <option value="video">Video</option>
-                      <option value="link">Link</option>
-                      <option value="html">HTML</option>
-                    </select>
+                      <select
+                        value={assetForm.kind}
+                        onChange={(event) => {
+                          const nextKind = event.target.value as EncounterAsset['kind']
+                          setAssetFile(null)
+                          setAssetForm((current) => ({
+                            ...current,
+                            kind: nextKind,
+                            view: nextKind === 'support' ? 'link' : 'pdf',
+                            materialCategory: nextKind === 'support' ? current.materialCategory ?? 'website' : undefined,
+                            downloadable: nextKind === 'support' ? false : true,
+                          }))
+                        }}
+                        className={adminSelectClassName}
+                      >
+                        <option value="summary">Arquivo para download do resumo</option>
+                        <option value="support">Link para o modal Materiais</option>
+                      </select>
+                    </AdminField>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Arquivo</Label>
-                    <Input type="file" onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)} />
+                </AdminFormSection>
+
+                <AdminFormSection
+                  title="Conteudo e exibicao"
+                  description="Defina o titulo, a categoria visual do material e os textos de apoio com mais espaco para leitura."
+                >
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <AdminField
+                      label="Titulo"
+                      hint={isSupportLink ? 'Este nome aparece no card do modal publico.' : 'Use um nome claro para o download.'}
+                    >
+                      <Input
+                        value={assetForm.title}
+                        onChange={(event) => setAssetForm((current) => ({ ...current, title: event.target.value }))}
+                        placeholder={isSupportLink ? 'Nome exibido para o link' : 'Nome do arquivo para o usuario'}
+                      />
+                    </AdminField>
+
+                    {isSupportLink ? (
+                      <AdminField
+                        label="Campo do modal Materiais"
+                        hint="Organiza o link no grupo correto dentro do modal."
+                      >
+                        <select
+                          value={assetForm.materialCategory ?? 'website'}
+                          onChange={(event) =>
+                            setAssetForm((current) => ({
+                              ...current,
+                              materialCategory: event.target.value as MaterialCategory,
+                            }))
+                          }
+                          className={adminSelectClassName}
+                        >
+                          {materialCategoryConfigs.map((category) => (
+                            <option key={category.key} value={category.key}>
+                              {category.label}
+                            </option>
+                          ))}
+                        </select>
+                      </AdminField>
+                    ) : (
+                      <AdminField
+                        label="Arquivo"
+                        hint="Envie o arquivo que ficara disponivel para download neste encontro."
+                      >
+                        <Input type="file" onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)} />
+                      </AdminField>
+                    )}
+                  </div>
+
+                  <div className="grid gap-5 xl:grid-cols-2">
+                    <AdminField
+                      label={isSupportLink ? 'Weblink' : 'URL do arquivo'}
+                      hint={
+                        isSupportLink
+                          ? 'Cole a URL completa do site, video ou documento externo.'
+                          : 'Preencha apenas se quiser registrar uma URL manualmente em vez de enviar um arquivo.'
+                      }
+                    >
+                      <Textarea
+                        className="min-h-[132px]"
+                        value={assetForm.url}
+                        onChange={(event) => setAssetForm((current) => ({ ...current, url: event.target.value }))}
+                        placeholder={isSupportLink ? 'https://...' : 'https://...'}
+                      />
+                    </AdminField>
+
+                    <AdminField
+                      label="Descricao"
+                      hint="Um texto curto ajuda a pessoa a entender por que vale abrir este material."
+                    >
+                      <Textarea
+                        className="min-h-[132px]"
+                        value={assetForm.description}
+                        onChange={(event) =>
+                          setAssetForm((current) => ({ ...current, description: event.target.value }))
+                        }
+                        placeholder={
+                          isSupportLink
+                            ? 'Explique rapidamente por que este link vale a consulta.'
+                            : 'Descreva o arquivo de download.'
+                        }
+                      />
+                    </AdminField>
+                  </div>
+                </AdminFormSection>
+
+                <div className="sticky bottom-4 z-20">
+                  <div className="flex flex-col gap-3 rounded-[24px] border border-stone-200/80 bg-white/92 p-3 shadow-[0_18px_42px_rgba(74,61,35,0.12)] backdrop-blur md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-stone-800">
+                        {isSupportLink ? 'Pronto para salvar o link do modal Materiais.' : 'Pronto para salvar o arquivo de download.'}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        Revise encontro, tipo, titulo e descricao antes de publicar.
+                      </p>
+                    </div>
+                    <Button
+                      className="w-full md:w-auto"
+                      onClick={() => void handleSaveAsset()}
+                      disabled={saveAsset.isPending || !assetForm.encounterId}
+                    >
+                      {saveAsset.isPending ? 'Salvando...' : 'Salvar material'}
+                    </Button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>URL ou HTML</Label>
-                  <Textarea
-                    value={assetForm.url}
-                    onChange={(event) => setAssetForm((current) => ({ ...current, url: event.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descricao</Label>
-                  <Textarea
-                    value={assetForm.description}
-                    onChange={(event) =>
-                      setAssetForm((current) => ({ ...current, description: event.target.value }))
-                    }
-                  />
-                </div>
-                <Button onClick={() => void handleSaveAsset()} disabled={saveAsset.isPending || !assetForm.encounterId}>
-                  {saveAsset.isPending ? 'Salvando...' : 'Salvar material'}
-                </Button>
               </div>
             </Card>
           </div>
@@ -771,6 +972,204 @@ export function AdminDashboardPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="slideshow">
+          <Card>
+            <CardTitle>Imagens do slideshow</CardTitle>
+            <CardDescription className="mt-2">
+              Administre as imagens da abertura da home sem mexer em codigo. A ordem aqui e a ordem exibida no banner.
+            </CardDescription>
+            <div className="mt-6 space-y-5">
+              <div className="rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-stone-700">
+                <p className="font-semibold text-stone-900">Como este bloco funciona</p>
+                <p className="mt-1">
+                  Voce pode enviar uma nova imagem, colar uma URL publica, ajustar o texto alternativo e escolher o movimento de cada slide. Se a lista ficar vazia, a home volta a usar o conjunto padrao do projeto.
+                </p>
+              </div>
+
+              {settingsForm.landingImages.length > 0 ? (
+                <div className="space-y-4">
+                  {settingsForm.landingImages.map((slide, index) => {
+                    const previewUrl = pendingSlideFiles[slide.id]?.previewUrl ?? slide.src
+
+                    return (
+                      <div
+                        key={slide.id}
+                        className="rounded-[28px] border border-stone-200 bg-stone-50/80 p-4 md:p-5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-stone-900">Slide {index + 1}</p>
+                            <p className="text-sm text-stone-500">
+                              {previewUrl ? 'Imagem pronta para o banner.' : 'Defina uma URL ou envie uma imagem.'}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveLandingSlide(slide.id, -1)}
+                              disabled={index === 0}
+                            >
+                              <ArrowUp className="mr-2 h-4 w-4" />
+                              Subir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => moveLandingSlide(slide.id, 1)}
+                              disabled={index === settingsForm.landingImages.length - 1}
+                            >
+                              <ArrowDown className="mr-2 h-4 w-4" />
+                              Descer
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeLandingSlide(slide.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Remover
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
+                          <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/80 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                              Preview do slide
+                            </p>
+                            {previewUrl ? (
+                              <img
+                                src={previewUrl}
+                                alt={slide.alt || `Preview do slide ${index + 1}`}
+                                className="mt-3 aspect-[4/5] w-full rounded-[18px] object-cover"
+                              />
+                            ) : (
+                              <div className="mt-3 flex aspect-[4/5] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                                Envie uma imagem ou cole a URL para visualizar o slide.
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-5">
+                            <AdminFormSection
+                              title="Imagem"
+                              description="Use uma URL publica ou envie um arquivo diretamente para substituir este slide."
+                            >
+                              <AdminField
+                                label="URL da imagem"
+                                hint="Se voce preencher uma URL e tambem enviar um arquivo, o arquivo enviado sera usado no salvamento."
+                              >
+                                <Input
+                                  value={slide.src}
+                                  onChange={(event) =>
+                                    updateLandingSlide(slide.id, { src: event.target.value })
+                                  }
+                                  placeholder="https://..."
+                                />
+                              </AdminField>
+
+                              <AdminField
+                                label="Arquivo"
+                                hint="Aceita imagens locais para upload direto ao salvar o slideshow."
+                              >
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(event) =>
+                                    void handleSelectSlideFile(slide.id, event.target.files?.[0] ?? null)
+                                  }
+                                />
+                                {pendingSlideFiles[slide.id] ? (
+                                  <p className="text-xs text-stone-500">
+                                    Nova imagem selecionada. Ela sera enviada quando voce clicar em salvar.
+                                  </p>
+                                ) : null}
+                              </AdminField>
+                            </AdminFormSection>
+
+                            <div className="grid gap-5 md:grid-cols-[1.2fr_0.8fr]">
+                              <AdminField
+                                label="Texto alternativo"
+                                hint="Descreva a imagem para acessibilidade e contexto."
+                              >
+                                <Textarea
+                                  className="min-h-[112px]"
+                                  value={slide.alt}
+                                  onChange={(event) =>
+                                    updateLandingSlide(slide.id, { alt: event.target.value })
+                                  }
+                                  placeholder="Descreva brevemente a cena exibida neste slide."
+                                />
+                              </AdminField>
+
+                              <AdminField
+                                label="Movimento"
+                                hint="Controla o tipo de deslocamento suave aplicado no banner."
+                              >
+                                <select
+                                  value={slide.motion}
+                                  onChange={(event) =>
+                                    updateLandingSlide(slide.id, {
+                                      motion: event.target.value as LandingImageMotion,
+                                    })
+                                  }
+                                  className={adminSelectClassName}
+                                >
+                                  {landingMotionOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </AdminField>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[24px] border border-dashed border-stone-300 bg-white/70 p-6 text-sm leading-6 text-stone-600">
+                  Nenhum slide personalizado foi salvo. Ao adicionar e salvar pelo menos uma imagem aqui, a home passa a usar esta lista no lugar do conjunto padrao.
+                </div>
+              )}
+
+              <Button type="button" variant="outline" onClick={addLandingSlide}>
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar slide
+              </Button>
+
+              <div className="sticky bottom-4 z-20">
+                <div className="flex flex-col gap-3 rounded-[24px] border border-stone-200/80 bg-white/92 p-3 shadow-[0_18px_42px_rgba(74,61,35,0.12)] backdrop-blur md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-800">
+                      {settingsForm.landingImages.length > 0
+                        ? 'Pronto para atualizar o slideshow da home.'
+                        : 'Sem slides personalizados. O fallback padrao sera mantido.'}
+                    </p>
+                    <p className="text-xs text-stone-500">
+                      Salve para publicar a ordem, os textos alternativos e as novas imagens enviadas.
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full md:w-auto"
+                    onClick={() => void handleSaveSlideshow()}
+                    disabled={saveSettings.isPending}
+                  >
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    {saveSettings.isPending ? 'Salvando...' : 'Salvar slideshow'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="articles">
           <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
             <Card>
@@ -861,49 +1260,6 @@ export function AdminDashboardPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="settings">
-          <Card>
-            <CardTitle>Landing page</CardTitle>
-            <CardDescription className="mt-2">
-              Configure o video da abertura e a mensagem principal da home.
-            </CardDescription>
-            <div className="mt-5 grid gap-4">
-              <div className="space-y-2">
-                <Label>URL do video hero</Label>
-                <Input
-                  value={settingsForm.heroVideoUrl}
-                  onChange={(event) =>
-                    setSettingsForm((current) => (current ? { ...current, heroVideoUrl: event.target.value } : current))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Poster do video</Label>
-                <Input
-                  value={settingsForm.heroPosterUrl}
-                  onChange={(event) =>
-                    setSettingsForm((current) =>
-                      current ? { ...current, heroPosterUrl: event.target.value } : current,
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Texto principal</Label>
-                <Textarea
-                  value={settingsForm.homeLead}
-                  onChange={(event) =>
-                    setSettingsForm((current) => (current ? { ...current, homeLead: event.target.value } : current))
-                  }
-                />
-              </div>
-              <Separator />
-              <Button onClick={() => void handleSaveSettings()} disabled={saveSettings.isPending}>
-                {saveSettings.isPending ? 'Salvando...' : 'Salvar configuracoes'}
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
       </Tabs>
     </section>
   )

@@ -1,6 +1,7 @@
+import { createDefaultLandingImages } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
 import { hasSupabaseConfig } from '@/lib/env'
-import { fileToDataUrl } from '@/lib/utils'
+import { ensureUuid, fileToDataUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import {
   getLocalCMSState,
@@ -18,6 +19,8 @@ import type {
   Encounter,
   EncounterAsset,
   EncounterQuiz,
+  LandingImageMotion,
+  LandingSlide,
   SiteSettings,
 } from '@/types/content'
 
@@ -30,6 +33,34 @@ const REMOVED_HOME_LEADS = new Set([
 function sanitizeHomeLead(value: unknown) {
   const text = typeof value === 'string' ? value.trim() : ''
   return REMOVED_HOME_LEADS.has(text) ? '' : text
+}
+
+const landingImageMotions = new Set<LandingImageMotion>(['drift-a', 'drift-b', 'drift-c'])
+
+function sanitizeLandingImages(value: unknown) {
+  if (!Array.isArray(value)) {
+    return createDefaultLandingImages()
+  }
+
+  return value
+    .map((image): LandingSlide | null => {
+      if (!image || typeof image !== 'object') return null
+
+      const candidate = image as Partial<LandingSlide>
+      const src = typeof candidate.src === 'string' ? candidate.src.trim() : ''
+
+      if (!src) return null
+
+      return {
+        id: ensureUuid(candidate.id),
+        src,
+        alt: typeof candidate.alt === 'string' ? candidate.alt.trim() : '',
+        motion: landingImageMotions.has(candidate.motion as LandingImageMotion)
+          ? (candidate.motion as LandingImageMotion)
+          : 'drift-a',
+      }
+    })
+    .filter((image): image is LandingSlide => image !== null)
 }
 
 function cloneDefaultState() {
@@ -132,6 +163,7 @@ async function mapSupabaseState(): Promise<CMSState> {
       kind: asset.kind,
       view: asset.view,
       url: asset.url,
+      materialCategory: asset.material_category ?? undefined,
       downloadable: asset.downloadable,
       order: asset.order_index ?? 1,
     })
@@ -144,6 +176,7 @@ async function mapSupabaseState(): Promise<CMSState> {
       heroPosterUrl:
         settingsRes.data?.value?.heroPosterUrl ?? defaultCMSState.settings.heroPosterUrl,
       homeLead: sanitizeHomeLead(settingsRes.data?.value?.homeLead),
+      landingImages: sanitizeLandingImages(settingsRes.data?.value?.landingImages),
     },
     groups: groups as ClassGroup[],
     encounters:
@@ -211,11 +244,14 @@ export const cmsService = {
 
   async saveEncounter(encounter: Partial<Encounter> & Pick<Encounter, 'title'>) {
     if (!supabase) {
-      return upsertLocalEncounter(encounter)
+      return upsertLocalEncounter({
+        ...encounter,
+        id: ensureUuid(encounter.id),
+      })
     }
 
     const payload = {
-      id: encounter.id,
+      id: ensureUuid(encounter.id),
       class_group_id: encounter.groupId,
       slug: encounter.slug,
       title: encounter.title,
@@ -251,11 +287,14 @@ export const cmsService = {
 
   async saveGroup(group: Partial<ClassGroup> & Pick<ClassGroup, 'name'>) {
     if (!supabase) {
-      return upsertLocalGroup(group)
+      return upsertLocalGroup({
+        ...group,
+        id: ensureUuid(group.id),
+      })
     }
 
     const payload = {
-      id: group.id,
+      id: ensureUuid(group.id),
       slug: group.slug,
       name: group.name,
       battle_cry: group.battleCry,
@@ -277,11 +316,14 @@ export const cmsService = {
 
   async saveArticle(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
     if (!supabase) {
-      return upsertLocalArticle(article)
+      return upsertLocalArticle({
+        ...article,
+        id: ensureUuid(article.id),
+      })
     }
 
     const payload = {
-      id: article.id,
+      id: ensureUuid(article.id),
       slug: article.slug,
       title: article.title,
       excerpt: article.excerpt,
@@ -310,22 +352,27 @@ export const cmsService = {
   },
 
   async saveAsset(asset: EncounterAsset, file?: File | null) {
-    const finalUrl = file ? await uploadFile(file, asset.kind) : asset.url
+    const normalizedAsset = {
+      ...asset,
+      id: ensureUuid(asset.id),
+    }
+    const finalUrl = file ? await uploadFile(file, normalizedAsset.kind) : normalizedAsset.url
 
     if (!supabase) {
-      return upsertLocalAsset({ ...asset, url: finalUrl })
+      return upsertLocalAsset({ ...normalizedAsset, url: finalUrl })
     }
 
     const payload = {
-      id: asset.id,
-      encounter_id: asset.encounterId,
-      title: asset.title,
-      description: asset.description,
-      kind: asset.kind,
-      view: asset.view,
+      id: normalizedAsset.id,
+      encounter_id: normalizedAsset.encounterId,
+      title: normalizedAsset.title,
+      description: normalizedAsset.description,
+      kind: normalizedAsset.kind,
+      view: normalizedAsset.view,
       url: finalUrl,
-      downloadable: asset.downloadable,
-      order_index: asset.order,
+      material_category: normalizedAsset.materialCategory ?? null,
+      downloadable: normalizedAsset.downloadable,
+      order_index: normalizedAsset.order,
     }
 
     const { data, error } = await supabase
@@ -344,6 +391,7 @@ export const cmsService = {
       kind: data.kind,
       view: data.view,
       url: data.url,
+      materialCategory: data.material_category ?? undefined,
       downloadable: data.downloadable,
       order: data.order_index ?? 1,
     } satisfies EncounterAsset
@@ -351,23 +399,47 @@ export const cmsService = {
 
   async saveQuiz(quiz: EncounterQuiz) {
     if (!supabase) {
-      return upsertLocalQuiz(quiz)
+      return upsertLocalQuiz({
+        ...quiz,
+        id: ensureUuid(quiz.id),
+        questions: quiz.questions.map((question) => ({
+          ...question,
+          id: ensureUuid(question.id),
+          options: question.options.map((option) => ({
+            ...option,
+            id: ensureUuid(option.id),
+          })),
+        })),
+      })
+    }
+
+    const normalizedQuiz: EncounterQuiz = {
+      ...quiz,
+      id: ensureUuid(quiz.id),
+      questions: quiz.questions.map((question) => ({
+        ...question,
+        id: ensureUuid(question.id),
+        options: question.options.map((option) => ({
+          ...option,
+          id: ensureUuid(option.id),
+        })),
+      })),
     }
 
     const { data: quizRow, error: quizError } = await supabase
       .from('quizzes')
       .upsert({
-        id: quiz.id,
-        encounter_id: quiz.encounterId,
-        title: quiz.title,
-        description: quiz.description,
+        id: normalizedQuiz.id,
+        encounter_id: normalizedQuiz.encounterId,
+        title: normalizedQuiz.title,
+        description: normalizedQuiz.description,
       })
       .select('*')
       .single()
 
     if (quizError) throw new Error(quizError.message)
 
-    const existingQuestions = quiz.questions.map((question) => question.id)
+    const existingQuestions = normalizedQuiz.questions.map((question) => question.id)
 
     await supabase.from('quiz_questions').delete().eq('quiz_id', quizRow.id)
     await supabase
@@ -375,7 +447,7 @@ export const cmsService = {
       .delete()
       .in('question_id', existingQuestions.length ? existingQuestions : ['__none__'])
 
-    for (const [questionIndex, question] of quiz.questions.entries()) {
+    for (const [questionIndex, question] of normalizedQuiz.questions.entries()) {
       const { data: questionRow, error: questionError } = await supabase
         .from('quiz_questions')
         .insert({
@@ -402,29 +474,30 @@ export const cmsService = {
       if (optionsError) throw new Error(optionsError.message)
     }
 
-    return quiz
+    return normalizedQuiz
   },
 
   async saveSettings(settings: SiteSettings) {
+    const normalizedSettings = {
+      ...settings,
+      homeLead: sanitizeHomeLead(settings.homeLead),
+      landingImages: sanitizeLandingImages(settings.landingImages),
+    }
+
     if (!supabase) {
-      return saveLocalSettings({
-        ...settings,
-        homeLead: sanitizeHomeLead(settings.homeLead),
-      })
+      return saveLocalSettings(normalizedSettings)
     }
 
     const { error } = await supabase.from('site_settings').upsert({
       key: 'home',
-      value: {
-        ...settings,
-        homeLead: sanitizeHomeLead(settings.homeLead),
-      },
+      value: normalizedSettings,
     })
 
     if (error) throw new Error(error.message)
-    return {
-      ...settings,
-      homeLead: sanitizeHomeLead(settings.homeLead),
-    }
+    return normalizedSettings
+  },
+
+  async uploadMedia(file: File, folder = 'landing') {
+    return uploadFile(file, folder)
   },
 }

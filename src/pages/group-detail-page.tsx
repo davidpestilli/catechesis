@@ -1,8 +1,8 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Flame } from 'lucide-react'
+import { Navigate, useParams } from 'react-router-dom'
+import { Flame } from 'lucide-react'
 import { EncounterCard } from '@/components/content/encounter-card'
+import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 
@@ -25,12 +25,7 @@ export function GroupDetailPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 pb-24">
-      <Button asChild variant="ghost" className="mb-6">
-        <Link to="/encontros">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para turmas
-        </Link>
-      </Button>
+      <FloatingBackButton to="/encontros" label="Voltar para turmas" />
 
       <Card className="mb-8">
         <Badge>Turma</Badge>

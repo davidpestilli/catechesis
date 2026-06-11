@@ -1,0 +1,1 @@
+applied via Management API from supabase/migrations/20260523120000_categoria_anomalias_horarias.sql;

@@ -1,0 +1,33 @@
+-- Fix: após data_abertura/data_envio_aceite virarem TIMESTAMP em oraculo_chamados,
+-- todas as funções RPC que declaram RETURNS TABLE(... data_abertura date ...) passaram a falhar com
+-- "structure of query does not match function result type" (PostgreSQL 42804).
+--
+-- Solução: cast explícito c.data_abertura::date no SELECT preserva o contrato de retorno
+-- (frontend continua recebendo string YYYY-MM-DD), sem alterar assinatura das funções.
+--
+-- Funções patched (CREATE OR REPLACE via Management API em produção em 2026-04-24):
+--   - buscar_chamados
+--   - buscar_por_email
+--   - oraculo_search_unified
+--   - obter_tickets_por_respondente_status
+--   - obter_tickets_rejeite_por_respondente
+--   - obter_tickets_rejeite_por_equipe_sgs
+--   - obter_tickets_pendentes_periodo
+--   - obter_tickets_por_equipe_status (ambas sobrecargas)
+--   - obter_tickets_por_respondente_status_drill
+--
+-- Padrão aplicado: regex (?<![:\w])c\.data_abertura(?!::) -> c.data_abertura::date
+-- (cast date sobre timestamp é seguro em SELECT, WHERE e ORDER BY).
+--
+-- Outras funções com mesma assinatura RETURNS TABLE(... data_abertura date ...) ainda não
+-- chamadas pelo frontend (deixadas para patch sob demanda):
+--   oraculo_listar_chamados_filtro_grupo, oraculo_listar_chamados_por_grupo,
+--   oraculo_search_hybrid_simple, oraculo_search_semantic_fallback,
+--   oraculo_search_hybrid_advanced, oraculo_search_fts_highlighted,
+--   oraculo_search_similarity_advanced, bi_listar_chamados_categoria,
+--   buscar_chamados_fuzzy, oraculo_search_word_distance, oraculo_search_adaptive,
+--   oraculo_search_fts, oraculo_search_semantic, oraculo_search_semantic_compatible,
+--   oraculo_search_semantic_hybrid, oraculo_search_similarity, oraculo_search_with_learning
+--
+-- Esta migration é apenas marcador histórico — o patch real foi aplicado via Management API.
+SELECT 1;

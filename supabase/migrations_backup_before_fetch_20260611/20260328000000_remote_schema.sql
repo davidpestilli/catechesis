@@ -1,0 +1,1 @@
+-- Schema aplicado via scripts/sb-reset.ps1;

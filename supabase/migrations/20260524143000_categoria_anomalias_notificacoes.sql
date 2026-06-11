@@ -1,0 +1,1 @@
+applied via Management API from supabase/migrations/20260524143000_categoria_anomalias_notificacoes.sql;

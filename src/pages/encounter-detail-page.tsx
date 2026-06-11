@@ -1,9 +1,27 @@
+import * as Dialog from '@radix-ui/react-dialog'
+import DOMPurify from 'dompurify'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Download, FileQuestion, Images, ScrollText } from 'lucide-react'
+import {
+  BookOpen,
+  ExternalLink,
+  FileImage,
+  FileQuestion,
+  FileText,
+  Globe,
+  PlayCircle,
+  ScrollText,
+  X,
+} from 'lucide-react'
+import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
+import { getEncounterMaterialGroups } from '@/lib/encounter-materials'
+import {
+  getEncounterPrimarySummaryAsset,
+  getEncounterSummaryContent,
+} from '@/lib/encounter-summary'
 
 export function EncounterDetailPage() {
   const { groupSlug, encounterSlug } = useParams()
@@ -21,15 +39,20 @@ export function EncounterDetailPage() {
     return <div className="px-4 py-16 text-stone-700">Carregando encontro...</div>
   }
 
-  const firstSummary = encounter.assets.find((asset) => asset.kind === 'summary')
+  const summaryContent = getEncounterSummaryContent(encounter)
+  const firstSummary = getEncounterPrimarySummaryAsset(encounter)
+  const materialGroups = getEncounterMaterialGroups(encounter)
+  const materialIcons = {
+    video: PlayCircle,
+    image: FileImage,
+    text: FileText,
+    website: Globe,
+    book: BookOpen,
+  }
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 pb-24">
-      {group ? (
-        <Button asChild variant="ghost" className="mb-6">
-          <Link to={`/encontros/${group.slug}`}>Voltar para {group.name}</Link>
-        </Button>
-      ) : null}
+      {group ? <FloatingBackButton to={`/encontros/${group.slug}`} label={`Voltar para ${group.name}`} /> : null}
       <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
@@ -47,15 +70,6 @@ export function EncounterDetailPage() {
               className="h-72 w-full rounded-[34px] object-cover shadow-halo"
             />
           ) : null}
-          {encounter.bodyHtml ? (
-            <Card>
-              <CardTitle>Texto-base do encontro</CardTitle>
-              <div
-                className="prose-catechesis mt-4"
-                dangerouslySetInnerHTML={{ __html: encounter.bodyHtml }}
-              />
-            </Card>
-          ) : null}
         </div>
 
         <div className="space-y-4">
@@ -65,46 +79,171 @@ export function EncounterDetailPage() {
               Abra o resumo, revise o quiz e consulte os materiais extras.
             </CardDescription>
             <div className="mt-5 grid gap-3">
-              <Button asChild>
-                <Link to={`/encontros/${groupSlug}/${encounter.slug}/resumo`}>
-                  <ScrollText className="mr-2 h-4 w-4" />
-                  Resumo do encontro
-                </Link>
-              </Button>
+              {summaryContent ? (
+                <Dialog.Root>
+                  <Dialog.Trigger asChild>
+                    <Button>
+                      <ScrollText className="mr-2 h-4 w-4" />
+                      Resumo do encontro
+                    </Button>
+                  </Dialog.Trigger>
+                  <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 z-50 bg-stone-950/45 backdrop-blur-sm" />
+                    <Dialog.Content className="fixed inset-0 z-50 overflow-y-auto">
+                      <div className="min-h-full px-3 py-4 sm:px-6 sm:py-8">
+                        <div className="mx-auto max-w-4xl">
+                          <div className="mb-3 flex justify-end">
+                            <Dialog.Close asChild>
+                              <Button variant="ghost" className="bg-white/80 text-stone-800 shadow-sm backdrop-blur">
+                                <X className="mr-2 h-4 w-4" />
+                                Fechar
+                              </Button>
+                            </Dialog.Close>
+                          </div>
+
+                          <Card className="overflow-hidden p-0">
+                            {encounter.coverImageUrl ? (
+                              <img
+                                src={encounter.coverImageUrl}
+                                alt={encounter.title}
+                                className="h-60 w-full object-cover sm:h-72"
+                              />
+                            ) : null}
+                            <div className="space-y-5 p-6 sm:p-8">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge>{encounter.theme || 'Encontro'}</Badge>
+                                {group ? <Badge className="bg-stone-900 text-stone-50">{group.name}</Badge> : null}
+                              </div>
+
+                              <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div className="max-w-2xl">
+                                  <Dialog.Title asChild>
+                                    <h2 className="font-display text-4xl text-stone-900 sm:text-5xl">
+                                      {summaryContent.title}
+                                    </h2>
+                                  </Dialog.Title>
+                                  <Dialog.Description asChild>
+                                    <p className="mt-3 text-base leading-7 text-stone-600 sm:text-lg">
+                                      {summaryContent.description || 'Texto de apoio publicado no proprio sistema.'}
+                                    </p>
+                                  </Dialog.Description>
+                                </div>
+                              </div>
+
+                              <div
+                                className="prose-catechesis"
+                                dangerouslySetInnerHTML={{
+                                  __html: DOMPurify.sanitize(summaryContent.html),
+                                }}
+                              />
+                            </div>
+                          </Card>
+                        </div>
+                      </div>
+                    </Dialog.Content>
+                  </Dialog.Portal>
+                </Dialog.Root>
+              ) : firstSummary ? (
+                <Button asChild>
+                  <Link to={`/encontros/${groupSlug}/${encounter.slug}/resumo`}>
+                    <ScrollText className="mr-2 h-4 w-4" />
+                    Resumo do encontro
+                  </Link>
+                </Button>
+              ) : null}
               <Button asChild variant="outline">
                 <Link to={`/encontros/${groupSlug}/${encounter.slug}/quiz`}>
                   <FileQuestion className="mr-2 h-4 w-4" />
                   Quiz
                 </Link>
               </Button>
-              {encounter.assets
-                .filter((asset) => asset.kind === 'support')
-                .map((asset) => (
-                  <Button key={asset.id} asChild variant="ghost" className="justify-start">
-                    <Link to={`/encontros/${groupSlug}/${encounter.slug}/material/${asset.id}`}>
-                      <Images className="mr-2 h-4 w-4" />
-                      {asset.title}
-                    </Link>
-                  </Button>
-                ))}
+              {materialGroups.length > 0 ? (
+                <Dialog.Root>
+                  <Dialog.Trigger asChild>
+                    <Button variant="outline">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Materiais
+                    </Button>
+                  </Dialog.Trigger>
+                  <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 z-50 bg-stone-950/45 backdrop-blur-sm" />
+                    <Dialog.Content className="fixed inset-0 z-50 overflow-y-auto">
+                      <div className="min-h-full px-3 py-4 sm:px-6 sm:py-8">
+                        <div className="mx-auto max-w-5xl">
+                          <div className="mb-3 flex justify-end">
+                            <Dialog.Close asChild>
+                              <Button variant="ghost" className="bg-white/80 text-stone-800 shadow-sm backdrop-blur">
+                                <X className="mr-2 h-4 w-4" />
+                                Fechar
+                              </Button>
+                            </Dialog.Close>
+                          </div>
+
+                          <Card className="space-y-6 p-6 sm:p-8">
+                            <div className="max-w-3xl">
+                              <Dialog.Title asChild>
+                                <h2 className="font-display text-4xl text-stone-900 sm:text-5xl">
+                                  Materiais
+                                </h2>
+                              </Dialog.Title>
+                              <Dialog.Description asChild>
+                                <p className="mt-3 text-base leading-7 text-stone-600 sm:text-lg">
+                                  Links organizados para aprofundar o encontro com referencias visuais, leituras, videos e outros apoios.
+                                </p>
+                              </Dialog.Description>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-2">
+                              {materialGroups.map((group) => {
+                                const Icon = materialIcons[group.key]
+
+                                return (
+                                  <section
+                                    key={group.key}
+                                    className="rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,240,230,0.88))] p-5 shadow-[0_18px_45px_rgba(74,61,35,0.08)]"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                                        <Icon className="h-5 w-5" />
+                                      </div>
+                                      <div>
+                                        <h3 className="font-display text-2xl text-stone-900">{group.label}</h3>
+                                        <p className="mt-1 text-sm leading-6 text-stone-600">{group.description}</p>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-4 space-y-3">
+                                      {group.items.map((item) => (
+                                        <a
+                                          key={item.id}
+                                          href={item.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="group block rounded-[24px] border border-stone-200 bg-white/90 p-4 transition hover:border-primary/30 hover:bg-white hover:shadow-[0_14px_30px_rgba(49,92,67,0.08)]"
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <p className="font-semibold text-stone-900">{item.title}</p>
+                                              <p className="mt-2 text-sm leading-6 text-stone-600">{item.description}</p>
+                                            </div>
+                                            <ExternalLink className="mt-1 h-4 w-4 shrink-0 text-stone-400 transition group-hover:text-primary" />
+                                          </div>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </section>
+                                )
+                              })}
+                            </div>
+                          </Card>
+                        </div>
+                      </div>
+                    </Dialog.Content>
+                  </Dialog.Portal>
+                </Dialog.Root>
+              ) : null}
             </div>
           </Card>
-
-          {firstSummary ? (
-            <Card>
-              <CardTitle>Download rapido</CardTitle>
-              <CardDescription className="mt-2">
-                Baixe o resumo principal para enviar ou projetar offline.
-              </CardDescription>
-              <Button asChild variant="outline" className="mt-4 w-full">
-                <a href={firstSummary.url} target="_blank" rel="noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar resumo
-                </a>
-              </Button>
-            </Card>
-          ) : null}
-
         </div>
       </div>
     </section>

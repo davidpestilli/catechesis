@@ -1,9 +1,15 @@
 import DOMPurify from 'dompurify'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download } from 'lucide-react'
+import { Navigate, useParams } from 'react-router-dom'
+import { Download } from 'lucide-react'
+import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
+import {
+  getEncounterPrimarySummaryAsset,
+  getEncounterSummaryContent,
+  getEncounterSummaryDownloadAsset,
+} from '@/lib/encounter-summary'
 
 export function EncounterAssetPage() {
   const { groupSlug, encounterSlug, assetId } = useParams()
@@ -21,35 +27,41 @@ export function EncounterAssetPage() {
     return <div className="px-4 py-16 text-stone-700">Carregando conteudo...</div>
   }
 
+  const summaryContent = getEncounterSummaryContent(encounter)
+  const summaryDownloadAsset = getEncounterSummaryDownloadAsset(encounter)
   const asset =
     assetId != null
       ? encounter.assets.find((item) => item.id === assetId)
-      : encounter.assets.find((item) => item.kind === 'summary')
+      : summaryContent
+        ? undefined
+        : getEncounterPrimarySummaryAsset(encounter)
 
-  if (!asset && !encounter.bodyHtml) {
+  if (!asset && !summaryContent) {
     return <Navigate to={`/encontros/${groupSlug}/${encounter.slug}`} replace />
   }
 
+  const title = assetId == null ? summaryContent?.title ?? asset?.title ?? 'Resumo do encontro' : asset?.title
+  const description = assetId == null ? summaryContent?.description ?? asset?.description ?? '' : asset?.description
+  const downloadAsset = assetId == null ? summaryDownloadAsset : asset?.downloadable ? asset : undefined
+
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 pb-24">
-      <Button asChild variant="ghost" className="mb-6">
-        <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar ao encontro
-        </Link>
-      </Button>
+      <FloatingBackButton
+        to={`/encontros/${groupSlug}/${encounter.slug}`}
+        label="Voltar ao encontro"
+      />
 
       <Card className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <CardTitle>{asset?.title ?? 'Resumo em HTML'}</CardTitle>
+            <CardTitle>{title}</CardTitle>
             <CardDescription className="mt-2">
-              {asset?.description ?? ''}
+              {description}
             </CardDescription>
           </div>
-          {asset?.downloadable ? (
+          {downloadAsset ? (
             <Button asChild>
-              <a href={asset.url} target="_blank" rel="noreferrer">
+              <a href={downloadAsset.url} target="_blank" rel="noreferrer">
                 <Download className="mr-2 h-4 w-4" />
                 Baixar
               </a>
@@ -86,10 +98,10 @@ export function EncounterAssetPage() {
           </div>
         ) : null}
 
-        {!asset && encounter.bodyHtml ? (
+        {summaryContent ? (
           <div
             className="prose-catechesis"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(encounter.bodyHtml) }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(summaryContent.html) }}
           />
         ) : null}
       </Card>

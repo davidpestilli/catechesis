@@ -24,7 +24,6 @@ const router = createHashRouter([
       { path: 'encontros/:groupSlug', element: <GroupDetailPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug', element: <EncounterDetailPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug/resumo', element: <EncounterAssetPage /> },
-      { path: 'encontros/:groupSlug/:encounterSlug/material/:assetId', element: <EncounterAssetPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug/quiz', element: <EncounterQuizPage /> },
       { path: 'artigos', element: <ArticlesPage /> },
       { path: 'artigos/:slug', element: <ArticleViewPage /> },

@@ -3,23 +3,23 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 const navigation = [
-  { to: '/', label: 'Inicio', icon: Home },
-  { to: '/encontros', label: 'Encontros', icon: BookOpen },
-  { to: '/artigos', label: 'Artigos', icon: ScrollText },
+  { to: '/', label: 'Início', icon: Home, ornate: true },
+  { to: '/encontros', label: 'Turmas', icon: BookOpen, ornate: true },
+  { to: '/artigos', label: 'Artigos', icon: ScrollText, ornate: true },
 ]
 
 export function SiteShell() {
   return (
     <div className="min-h-screen bg-ink-glow text-foreground">
       <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/60 bg-[rgba(251,247,235,0.78)] backdrop-blur-xl">
-        <div className="mx-auto flex h-[96px] max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
-          <Link to="/" className="shrink-0 py-3">
-            <span className="font-display text-[1.65rem] tracking-[0.18em] text-stone-900 sm:text-[1.9rem]">
+        <div className="mx-auto grid h-[96px] max-w-6xl grid-cols-1 items-center px-4 sm:px-6 md:grid-cols-[1fr_auto]">
+          <Link to="/" className="justify-self-center py-3 md:justify-self-start">
+            <span className="font-gothic text-[2rem] tracking-[0.08em] text-stone-900 sm:text-[2.2rem]">
               Catechesis
             </span>
           </Link>
-          <div className="hidden items-center gap-2 md:ml-auto md:flex">
-            {navigation.map(({ to, label }) => (
+          <div className="hidden items-center gap-2 md:justify-self-end md:flex">
+            {navigation.map(({ to, label, ornate }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -30,7 +30,15 @@ export function SiteShell() {
                   )
                 }
               >
-                {label}
+                <span
+                  className={cn(
+                    ornate
+                      ? 'font-gothic text-lg leading-none tracking-normal'
+                      : 'text-sm font-medium',
+                  )}
+                >
+                  {label}
+                </span>
               </NavLink>
             ))}
           </div>
@@ -43,7 +51,7 @@ export function SiteShell() {
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-[rgba(251,247,235,0.96)] px-3 py-2 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
-          {navigation.map(({ to, label, icon: Icon }) => (
+          {navigation.map(({ to, label, icon: Icon, ornate }) => (
             <NavLink
               key={to}
               to={to}
@@ -55,7 +63,13 @@ export function SiteShell() {
               }
             >
               <Icon className="mb-1 h-4 w-4" />
-              {label}
+              <span
+                className={cn(
+                  ornate ? 'font-gothic text-[1.15rem] leading-none tracking-normal' : 'leading-none',
+                )}
+              >
+                {label}
+              </span>
             </NavLink>
           ))}
         </div>

@@ -138,6 +138,7 @@ insert into public.encounter_assets (
   kind,
   view,
   url,
+  material_category,
   downloadable,
   order_index
 )
@@ -149,19 +150,45 @@ values (
   'summary',
   'pdf',
   'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+  null,
   true,
   1
 ),
 (
   '44444444-4444-4444-4444-444444444444',
   '11111111-1111-1111-1111-111111111111',
-  'Imagem de apoio',
-  'Imagem contemplativa para o momento de partilha.',
+  'Video de acolhida',
+  'Breve introducao em video para abrir a conversa do encontro.',
   'support',
-  'image',
-  'https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1200&q=80',
-  true,
+  'link',
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  'video',
+  false,
   2
+),
+(
+  '44444444-4444-4444-4444-444444444448',
+  '11111111-1111-1111-1111-111111111111',
+  'Texto sobre catequese e comunidade',
+  'Leitura curta para aprofundar a ideia de caminhada comunitaria.',
+  'support',
+  'link',
+  'https://www.vatican.va',
+  'text',
+  false,
+  3
+),
+(
+  '44444444-4444-4444-4444-444444444449',
+  '11111111-1111-1111-1111-111111111111',
+  'Imagem simbolica da Palavra',
+  'Referencia visual para projetar ou compartilhar com a turma.',
+  'support',
+  'link',
+  'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
+  'image',
+  false,
+  4
 ),
 (
   '44444444-4444-4444-4444-444444444445',
@@ -171,6 +198,7 @@ values (
   'summary',
   'pdf',
   'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+  null,
   true,
   1
 ),
@@ -182,6 +210,7 @@ values (
   'summary',
   'html',
   '<h2>Momento celebrativo</h2><p>Inicie com um refrao, proclame a Palavra, abra uma breve partilha e conclua com uma prece comum.</p>',
+  null,
   false,
   1
 ),
@@ -193,8 +222,21 @@ values (
   'support',
   'link',
   'https://www.vatican.va',
+  'website',
   false,
   1
+),
+(
+  '44444444-4444-4444-4444-444444444450',
+  '22222222-2222-2222-2222-222222222225',
+  'Livro para aprofundamento',
+  'Referencia bibliografica para continuar o estudo sobre missao e servico.',
+  'support',
+  'link',
+  'https://books.google.com',
+  'book',
+  false,
+  2
 )
 on conflict (id) do update
 set
@@ -204,6 +246,7 @@ set
   kind = excluded.kind,
   view = excluded.view,
   url = excluded.url,
+  material_category = excluded.material_category,
   downloadable = excluded.downloadable,
   order_index = excluded.order_index;
 

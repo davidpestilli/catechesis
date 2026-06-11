@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { LandingImage } from '@/data/landing-images'
+import { createDefaultLandingImages } from '@/data/landing-images'
 import type { SiteSettings } from '@/types/content'
 
 interface HeroBannerProps {
   settings: SiteSettings
-  images: LandingImage[]
 }
 
-export function HeroBanner({ settings, images }: HeroBannerProps) {
+export function HeroBanner({ settings }: HeroBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  const hasImages = images.length > 0
-  const visibleImages = useMemo(() => (hasImages ? images : []), [hasImages, images])
+  const visibleImages = useMemo(
+    () => (settings.landingImages.length > 0 ? settings.landingImages : createDefaultLandingImages()),
+    [settings.landingImages],
+  )
+  const hasImages = visibleImages.length > 0
 
   useEffect(() => {
     if (visibleImages.length <= 1) return

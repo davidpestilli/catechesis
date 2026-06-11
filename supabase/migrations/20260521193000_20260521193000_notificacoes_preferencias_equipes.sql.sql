@@ -1,0 +1,1 @@
+-- applied via Management API: 20260521193000_notificacoes_preferencias_equipes.sql;

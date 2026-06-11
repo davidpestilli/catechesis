@@ -1,0 +1,1 @@
+applied via Management API from supabase/migrations/20260526120000_categoria_anomalias_reduzir_ruido.sql;

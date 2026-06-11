@@ -1,5 +1,6 @@
+import { createDefaultLandingImages } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
-import { createId, slugify } from '@/lib/utils'
+import { createId, ensureUuid, slugify } from '@/lib/utils'
 import type {
   Article,
   CMSState,
@@ -7,6 +8,8 @@ import type {
   Encounter,
   EncounterAsset,
   EncounterQuiz,
+  LandingImageMotion,
+  LandingSlide,
   SiteSettings,
 } from '@/types/content'
 
@@ -19,6 +22,34 @@ const REMOVED_HOME_LEADS = new Set([
 function sanitizeHomeLead(value: unknown) {
   const text = typeof value === 'string' ? value.trim() : ''
   return REMOVED_HOME_LEADS.has(text) ? '' : text
+}
+
+const landingImageMotions = new Set<LandingImageMotion>(['drift-a', 'drift-b', 'drift-c'])
+
+function sanitizeLandingImages(value: unknown) {
+  if (!Array.isArray(value)) {
+    return createDefaultLandingImages()
+  }
+
+  return value
+    .map((image): LandingSlide | null => {
+      if (!image || typeof image !== 'object') return null
+
+      const candidate = image as Partial<LandingSlide>
+      const src = typeof candidate.src === 'string' ? candidate.src.trim() : ''
+
+      if (!src) return null
+
+      return {
+        id: ensureUuid(candidate.id),
+        src,
+        alt: typeof candidate.alt === 'string' ? candidate.alt.trim() : '',
+        motion: landingImageMotions.has(candidate.motion as LandingImageMotion)
+          ? (candidate.motion as LandingImageMotion)
+          : 'drift-a',
+      }
+    })
+    .filter((image): image is LandingSlide => image !== null)
 }
 
 function buildLegacyGroups(encounters: Encounter[]) {
@@ -82,6 +113,7 @@ function sanitizeCMSState(state: CMSState): CMSState {
     settings: {
       ...normalizedState.settings,
       homeLead: sanitizeHomeLead(normalizedState.settings?.homeLead),
+      landingImages: sanitizeLandingImages(normalizedState.settings?.landingImages),
     },
   }
 }
@@ -127,7 +159,7 @@ export function saveLocalCMSState(nextState: CMSState) {
 
 export function upsertLocalEncounter(input: Partial<Encounter> & Pick<Encounter, 'title'>) {
   const state = getLocalCMSState()
-  const id = input.id ?? createId()
+  const id = ensureUuid(input.id)
   const encounter: Encounter = {
     id,
     groupId: input.groupId ?? state.groups[0]?.id ?? createId(),
@@ -158,7 +190,7 @@ export function upsertLocalEncounter(input: Partial<Encounter> & Pick<Encounter,
 
 export function upsertLocalGroup(input: Partial<ClassGroup> & Pick<ClassGroup, 'name'>) {
   const state = getLocalCMSState()
-  const id = input.id ?? createId()
+  const id = ensureUuid(input.id)
   const group: ClassGroup = {
     id,
     slug: input.slug ?? slugify(input.name),
@@ -181,7 +213,7 @@ export function upsertLocalGroup(input: Partial<ClassGroup> & Pick<ClassGroup, '
 
 export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
   const state = getLocalCMSState()
-  const id = input.id ?? createId()
+  const id = ensureUuid(input.id)
   const article: Article = {
     id,
     slug: input.slug ?? slugify(input.title),
@@ -208,35 +240,51 @@ export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'titl
 
 export function upsertLocalAsset(asset: EncounterAsset) {
   const state = getLocalCMSState()
-  const encounter = state.encounters.find((item) => item.id === asset.encounterId)
+  const normalizedAsset = {
+    ...asset,
+    id: ensureUuid(asset.id),
+  }
+  const encounter = state.encounters.find((item) => item.id === normalizedAsset.encounterId)
 
   if (!encounter) {
     throw new Error('Encontro nao encontrado para anexar o material.')
   }
 
-  const assetIndex = encounter.assets.findIndex((item) => item.id === asset.id)
+  const assetIndex = encounter.assets.findIndex((item) => item.id === normalizedAsset.id)
 
   if (assetIndex >= 0) {
-    encounter.assets[assetIndex] = asset
+    encounter.assets[assetIndex] = normalizedAsset
   } else {
-    encounter.assets.push(asset)
+    encounter.assets.push(normalizedAsset)
   }
 
   saveLocalCMSState(state)
-  return asset
+  return normalizedAsset
 }
 
 export function upsertLocalQuiz(quiz: EncounterQuiz) {
   const state = getLocalCMSState()
-  const encounter = state.encounters.find((item) => item.id === quiz.encounterId)
+  const normalizedQuiz: EncounterQuiz = {
+    ...quiz,
+    id: ensureUuid(quiz.id),
+    questions: quiz.questions.map((question) => ({
+      ...question,
+      id: ensureUuid(question.id),
+      options: question.options.map((option) => ({
+        ...option,
+        id: ensureUuid(option.id),
+      })),
+    })),
+  }
+  const encounter = state.encounters.find((item) => item.id === normalizedQuiz.encounterId)
 
   if (!encounter) {
     throw new Error('Encontro nao encontrado para salvar o quiz.')
   }
 
-  encounter.quiz = quiz
+  encounter.quiz = normalizedQuiz
   saveLocalCMSState(state)
-  return quiz
+  return normalizedQuiz
 }
 
 export function saveLocalSettings(settings: SiteSettings) {
@@ -244,6 +292,7 @@ export function saveLocalSettings(settings: SiteSettings) {
   state.settings = {
     ...settings,
     homeLead: sanitizeHomeLead(settings.homeLead),
+    landingImages: sanitizeLandingImages(settings.landingImages),
   }
   saveLocalCMSState(state)
   return state.settings

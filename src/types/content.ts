@@ -1,5 +1,7 @@
 export type AssetKind = 'summary' | 'support'
 export type AssetView = 'image' | 'pdf' | 'html' | 'video' | 'link'
+export type MaterialCategory = 'video' | 'image' | 'text' | 'website' | 'book'
+export type LandingImageMotion = 'drift-a' | 'drift-b' | 'drift-c'
 
 export interface EncounterAsset {
   id: string
@@ -9,6 +11,7 @@ export interface EncounterAsset {
   kind: AssetKind
   view: AssetView
   url: string
+  materialCategory?: MaterialCategory
   downloadable: boolean
   order: number
 }
@@ -70,10 +73,18 @@ export interface Article {
   publishedAt: string
 }
 
+export interface LandingSlide {
+  id: string
+  src: string
+  alt: string
+  motion: LandingImageMotion
+}
+
 export interface SiteSettings {
   heroVideoUrl: string
   heroPosterUrl: string
   homeLead: string
+  landingImages: LandingSlide[]
 }
 
 export interface CMSState {

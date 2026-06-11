@@ -1,4 +1,5 @@
 import type { CMSState } from '@/types/content'
+import { createDefaultLandingImages } from '@/data/landing-images'
 import { createId } from '@/lib/utils'
 
 const groupOneId = createId()
@@ -18,6 +19,7 @@ export const defaultCMSState: CMSState = {
     heroPosterUrl:
       'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
     homeLead: '',
+    landingImages: createDefaultLandingImages(),
   },
   groups: [
     {
@@ -66,13 +68,38 @@ export const defaultCMSState: CMSState = {
         {
           id: createId(),
           encounterId: encounterOneId,
-          title: 'Imagem de apoio',
-          description: 'Imagem contemplativa para o momento de partilha.',
+          title: 'Video de acolhida',
+          description: 'Breve introducao em video para abrir a conversa do encontro.',
           kind: 'support',
-          view: 'image',
-          url: 'https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1200&q=80',
-          downloadable: true,
+          view: 'link',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          materialCategory: 'video',
+          downloadable: false,
           order: 2,
+        },
+        {
+          id: createId(),
+          encounterId: encounterOneId,
+          title: 'Texto sobre catequese e comunidade',
+          description: 'Leitura curta para aprofundar a ideia de caminhada comunitaria.',
+          kind: 'support',
+          view: 'link',
+          url: 'https://www.vatican.va',
+          materialCategory: 'text',
+          downloadable: false,
+          order: 3,
+        },
+        {
+          id: createId(),
+          encounterId: encounterOneId,
+          title: 'Imagem simbolica da Palavra',
+          description: 'Referencia visual para projetar ou compartilhar com a turma.',
+          kind: 'support',
+          view: 'link',
+          url: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
+          materialCategory: 'image',
+          downloadable: false,
+          order: 4,
         },
       ],
       quiz: {
@@ -229,8 +256,21 @@ export const defaultCMSState: CMSState = {
           kind: 'support',
           view: 'link',
           url: 'https://www.vatican.va',
+          materialCategory: 'website',
           downloadable: false,
           order: 1,
+        },
+        {
+          id: createId(),
+          encounterId: encounterFiveId,
+          title: 'Livro para aprofundamento',
+          description: 'Referencia bibliografica para continuar o estudo sobre missao e servico.',
+          kind: 'support',
+          view: 'link',
+          url: 'https://books.google.com',
+          materialCategory: 'book',
+          downloadable: false,
+          order: 2,
         },
       ],
     },

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Navigate, useParams } from 'react-router-dom'
+import { CheckCircle2 } from 'lucide-react'
+import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
@@ -28,9 +29,7 @@ export function EncounterQuizPage() {
   if (!quiz) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-12">
-        <Button asChild variant="ghost">
-          <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>Voltar</Link>
-        </Button>
+        <FloatingBackButton to={`/encontros/${groupSlug}/${encounter.slug}`} label="Voltar ao encontro" />
         <Card className="mt-6">
           <CardTitle>Quiz ainda nao cadastrado</CardTitle>
           <CardDescription className="mt-2">
@@ -51,12 +50,7 @@ export function EncounterQuizPage() {
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 pb-24">
-      <Button asChild variant="ghost" className="mb-6">
-        <Link to={`/encontros/${groupSlug}/${encounter.slug}`}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar ao encontro
-        </Link>
-      </Button>
+      <FloatingBackButton to={`/encontros/${groupSlug}/${encounter.slug}`} label="Voltar ao encontro" />
 
       <div className="space-y-5">
         <Card>

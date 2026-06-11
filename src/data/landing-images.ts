@@ -1,3 +1,5 @@
+import { createId } from '@/lib/utils'
+import type { LandingImageMotion, LandingSlide } from '@/types/content'
 import hero01 from '@/assets/landing/01-ai-basilica.png'
 import hero02 from '@/assets/landing/02-basilica-facade.jpg'
 import hero03 from '@/assets/landing/03-rome-colonnade.jpg'
@@ -7,13 +9,13 @@ import hero06 from '@/assets/landing/06-vatican-view.jpg'
 import hero07 from '@/assets/landing/07-tiber-river.jpg'
 import hero08 from '@/assets/landing/08-vatican-skyline.jpg'
 
-export interface LandingImage {
+export interface LandingImagePreset {
   src: string
   alt: string
-  motion: 'drift-a' | 'drift-b' | 'drift-c'
+  motion: LandingImageMotion
 }
 
-export const landingImages: LandingImage[] = [
+export const landingImagePresets: LandingImagePreset[] = [
   {
     src: hero01,
     alt: 'Ilustracao luminosa de basilica para a abertura do Catechesis.',
@@ -55,3 +57,10 @@ export const landingImages: LandingImage[] = [
     motion: 'drift-b',
   },
 ]
+
+export function createDefaultLandingImages(): LandingSlide[] {
+  return landingImagePresets.map((image) => ({
+    id: createId(),
+    ...image,
+  }))
+}
