@@ -9,6 +9,13 @@ import { landingImages } from '@/data/landing-images'
 import { useCMSState } from '@/hooks/use-cms'
 import { useAuth } from '@/providers/auth-provider'
 
+const credibilityItems = [
+  'Turmas organizadas',
+  'Encontros por etapa',
+  'Materiais de apoio',
+  'Artigos formativos',
+]
+
 export function HomePage() {
   const { data } = useCMSState()
   const { isAuthenticated } = useAuth()
@@ -20,6 +27,19 @@ export function HomePage() {
   return (
     <div className="pb-24">
       <HeroBanner settings={data.settings} images={landingImages} />
+
+      <section className="border-y border-stone-200/80 bg-[rgba(250,246,236,0.92)]">
+        <div className="mx-auto grid max-w-6xl gap-3 px-4 py-5 sm:px-6 md:grid-cols-4">
+          {credibilityItems.map((item) => (
+            <div
+              key={item}
+              className="rounded-full border border-stone-200/80 bg-white/70 px-4 py-3 text-center text-sm font-semibold tracking-[0.12em] text-stone-700 shadow-sm shadow-stone-200/30"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mx-auto max-w-6xl px-4 py-14">
         <SectionTitle

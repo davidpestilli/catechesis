@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bold,
+  Eraser,
   ImagePlus,
   Italic,
   Link2,
   List,
   ListOrdered,
+  Palette,
+  Quote,
   Type,
   Underline,
   Video,
@@ -19,6 +22,20 @@ interface RichTextEditorProps {
   className?: string
 }
 
+interface ToolbarState {
+  isBold: boolean
+  isItalic: boolean
+  isUnderline: boolean
+  isBulletList: boolean
+  isOrderedList: boolean
+  isLink: boolean
+  isBlockquote: boolean
+  hasCustomColor: boolean
+  currentFont: string
+  currentHeading: string
+  currentColor: string
+}
+
 const fonts = [
   { label: 'Cormorant', value: '"Cormorant Garamond", serif' },
   { label: 'Fraunces', value: '"Fraunces", serif' },
@@ -27,11 +44,93 @@ const fonts = [
 ]
 
 const headings = [
-  { label: 'Paragrafo', value: 'P' },
-  { label: 'Titulo 1', value: 'H1' },
-  { label: 'Titulo 2', value: 'H2' },
-  { label: 'Titulo 3', value: 'H3' },
+  { label: 'Paragrafo', value: 'p' },
+  { label: 'Titulo 1', value: 'h1' },
+  { label: 'Titulo 2', value: 'h2' },
+  { label: 'Titulo 3', value: 'h3' },
 ]
+
+const fallbackTextColor = '#292524'
+
+const defaultToolbarState: ToolbarState = {
+  isBold: false,
+  isItalic: false,
+  isUnderline: false,
+  isBulletList: false,
+  isOrderedList: false,
+  isLink: false,
+  isBlockquote: false,
+  hasCustomColor: false,
+  currentFont: fonts[0]?.value ?? 'inherit',
+  currentHeading: 'p',
+  currentColor: fallbackTextColor,
+}
+
+function getElementFromNode(node: Node | null) {
+  if (!node) return null
+  return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement
+}
+
+function normalizeTagName(value: string) {
+  return value.replace(/[<>]/g, '').trim().toLowerCase()
+}
+
+function hexFromRgbString(value: string) {
+  const rgbMatch = value.match(/\d+/g)
+  if (!rgbMatch || rgbMatch.length < 3) return null
+
+  return `#${rgbMatch
+    .slice(0, 3)
+    .map((channel) => Number(channel).toString(16).padStart(2, '0'))
+    .join('')}`.toLowerCase()
+}
+
+function normalizeColorValue(value: string | null | undefined) {
+  if (!value) return null
+
+  const trimmed = value.trim().toLowerCase()
+
+  if (!trimmed) return null
+  if (trimmed.startsWith('#')) {
+    if (trimmed.length === 4) {
+      return `#${trimmed
+        .slice(1)
+        .split('')
+        .map((character) => character + character)
+        .join('')}`
+    }
+
+    return trimmed
+  }
+
+  if (trimmed.startsWith('rgb')) {
+    return hexFromRgbString(trimmed)
+  }
+
+  return null
+}
+
+function findClosestWithinEditor(element: Element | null, editor: HTMLDivElement, selector: string) {
+  if (!element) return null
+
+  const matched = element.closest(selector)
+  return matched && editor.contains(matched) ? matched : null
+}
+
+function matchFontValue(fontFamily: string) {
+  const normalizedFont = fontFamily.replace(/["']/g, '').toLowerCase()
+
+  return (
+    fonts.find((font) => {
+      const fontTokens = font.value
+        .split(',')
+        .map((token) => token.replace(/["']/g, '').trim().toLowerCase())
+        .filter(Boolean)
+
+      return fontTokens.some((token) => normalizedFont.includes(token))
+    })?.value ?? fonts[0]?.value ?? 'inherit'
+  )
+}
 
 export function RichTextEditor({
   value,
@@ -42,9 +141,9 @@ export function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const selectionRangeRef = useRef<Range | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [currentFont, setCurrentFont] = useState(fonts[0]?.value ?? 'inherit')
-  const [currentHeading, setCurrentHeading] = useState('P')
+  const [toolbarState, setToolbarState] = useState<ToolbarState>(defaultToolbarState)
 
   useEffect(() => {
     setMounted(true)
@@ -55,7 +154,117 @@ export function RichTextEditor({
     if (editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value
     }
+
+    window.requestAnimationFrame(() => {
+      syncToolbarState()
+    })
   }, [mounted, value])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    const handleSelectionChange = () => {
+      persistSelection()
+      syncToolbarState()
+    }
+
+    document.addEventListener('selectionchange', handleSelectionChange)
+
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange)
+    }
+  }, [mounted])
+
+  function getDefaultTextColor() {
+    if (!editorRef.current) return fallbackTextColor
+
+    return normalizeColorValue(window.getComputedStyle(editorRef.current).color) ?? fallbackTextColor
+  }
+
+  function getSelection() {
+    return window.getSelection()
+  }
+
+  function isSelectionInsideEditor(selection = getSelection()) {
+    if (!selection || selection.rangeCount === 0 || !editorRef.current) return false
+
+    const range = selection.getRangeAt(0)
+    const target =
+      range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+        ? range.commonAncestorContainer.parentNode
+        : range.commonAncestorContainer
+
+    return !!target && editorRef.current.contains(target)
+  }
+
+  function persistSelection(selection = getSelection()) {
+    if (!selection || selection.rangeCount === 0 || !isSelectionInsideEditor(selection)) return
+    selectionRangeRef.current = selection.getRangeAt(0).cloneRange()
+  }
+
+  function restoreSelection() {
+    if (!selectionRangeRef.current) return
+
+    const selection = getSelection()
+    if (!selection) return
+
+    selection.removeAllRanges()
+    selection.addRange(selectionRangeRef.current)
+  }
+
+  function syncToolbarState(selection = getSelection()) {
+    if (!editorRef.current || !selection || !selection.rangeCount || !isSelectionInsideEditor(selection)) {
+      return
+    }
+
+    const editor = editorRef.current
+    const anchorElement = getElementFromNode(selection.anchorNode)
+    const blockElement = findClosestWithinEditor(anchorElement, editor, 'h1, h2, h3, p')
+    const closestLink = findClosestWithinEditor(anchorElement, editor, 'a')
+    const closestBlockquote = findClosestWithinEditor(anchorElement, editor, 'blockquote')
+    const closestBulletList = findClosestWithinEditor(anchorElement, editor, 'ul')
+    const closestOrderedList = findClosestWithinEditor(anchorElement, editor, 'ol')
+    const explicitColor =
+      normalizeColorValue(
+        anchorElement?.closest('[style*="color"], font[color]') instanceof HTMLElement
+          ? (
+              anchorElement.closest('[style*="color"], font[color]') as HTMLElement
+            ).style.color ||
+            anchorElement.closest('font[color]')?.getAttribute('color')
+          : anchorElement?.closest('font[color]')?.getAttribute('color'),
+      ) ?? null
+
+    const effectiveColor =
+      explicitColor ??
+      normalizeColorValue(document.queryCommandValue('foreColor')) ??
+      normalizeColorValue(anchorElement ? window.getComputedStyle(anchorElement).color : null) ??
+      getDefaultTextColor()
+
+    const effectiveFont =
+      anchorElement?.closest('[style*="font-family"], font[face]') instanceof HTMLElement
+        ? (
+            anchorElement.closest('[style*="font-family"], font[face]') as HTMLElement
+          ).style.fontFamily ||
+          anchorElement.closest('font[face]')?.getAttribute('face') ||
+          window.getComputedStyle(anchorElement).fontFamily
+        : anchorElement
+          ? window.getComputedStyle(anchorElement).fontFamily
+          : fonts[0]?.value
+
+    setToolbarState({
+      isBold: document.queryCommandState('bold'),
+      isItalic: document.queryCommandState('italic'),
+      isUnderline: document.queryCommandState('underline'),
+      isBulletList: !!closestBulletList,
+      isOrderedList: !!closestOrderedList,
+      isLink: !!closestLink,
+      isBlockquote: !!closestBlockquote,
+      hasCustomColor: explicitColor !== null && explicitColor !== getDefaultTextColor(),
+      currentFont: matchFontValue(effectiveFont ?? ''),
+      currentHeading: normalizeTagName(blockElement?.tagName ?? 'p'),
+      currentColor: effectiveColor,
+    })
+  }
 
   function emitChange() {
     onChange(editorRef.current?.innerHTML ?? '')
@@ -63,19 +272,47 @@ export function RichTextEditor({
 
   function exec(command: string, commandValue?: string) {
     editorRef.current?.focus()
+    restoreSelection()
+
+    if (command === 'foreColor') {
+      document.execCommand('styleWithCSS', false, 'true')
+    }
+
     document.execCommand(command, false, commandValue)
+
+    if (command === 'foreColor') {
+      document.execCommand('styleWithCSS', false, 'false')
+    }
+
     emitChange()
+
+    window.requestAnimationFrame(() => {
+      persistSelection()
+      syncToolbarState()
+    })
+  }
+
+  function applyBlockFormat(tagName: string) {
+    exec('formatBlock', `<${tagName}>`)
   }
 
   async function handleFileInsert(file: File, tag: 'image' | 'video') {
     const dataUrl = await fileToDataUrl(file)
     editorRef.current?.focus()
+    restoreSelection()
+
     const markup =
       tag === 'image'
         ? `<img alt="" class="my-4 h-auto max-w-full rounded-[24px]" src="${dataUrl}" />`
         : `<video controls class="my-4 w-full rounded-[24px]" src="${dataUrl}"></video>`
+
     document.execCommand('insertHTML', false, markup)
     emitChange()
+
+    window.requestAnimationFrame(() => {
+      persistSelection()
+      syncToolbarState()
+    })
   }
 
   const plainText = useMemo(
@@ -89,23 +326,48 @@ export function RichTextEditor({
 
   const toolbarButtons = useMemo(
     () => [
-      { icon: Bold, label: 'Negrito', action: () => exec('bold') },
-      { icon: Italic, label: 'Italico', action: () => exec('italic') },
-      { icon: Underline, label: 'Sublinhado', action: () => exec('underline') },
-      { icon: List, label: 'Lista', action: () => exec('insertUnorderedList') },
-      { icon: ListOrdered, label: 'Lista numerada', action: () => exec('insertOrderedList') },
+      { icon: Bold, label: 'Negrito', active: toolbarState.isBold, action: () => exec('bold') },
+      { icon: Italic, label: 'Italico', active: toolbarState.isItalic, action: () => exec('italic') },
+      {
+        icon: Underline,
+        label: 'Sublinhado',
+        active: toolbarState.isUnderline,
+        action: () => exec('underline'),
+      },
+      {
+        icon: Quote,
+        label: 'Citacao',
+        active: toolbarState.isBlockquote,
+        action: () => applyBlockFormat(toolbarState.isBlockquote ? 'p' : 'blockquote'),
+      },
+      {
+        icon: List,
+        label: 'Lista',
+        active: toolbarState.isBulletList,
+        action: () => exec('insertUnorderedList'),
+      },
+      {
+        icon: ListOrdered,
+        label: 'Lista numerada',
+        active: toolbarState.isOrderedList,
+        action: () => exec('insertOrderedList'),
+      },
       {
         icon: Link2,
         label: 'Link',
+        active: toolbarState.isLink,
         action: () => {
-          const url = window.prompt('Informe a URL do link:')
+          const selection = getSelection()
+          const currentLink =
+            getElementFromNode(selection ? selection.anchorNode : null)?.closest('a')?.getAttribute('href') ?? ''
+          const url = window.prompt('Informe a URL do link:', currentLink)
           if (url) exec('createLink', url)
         },
       },
-      { icon: ImagePlus, label: 'Imagem', action: () => imageInputRef.current?.click() },
-      { icon: Video, label: 'Video', action: () => videoInputRef.current?.click() },
+      { icon: ImagePlus, label: 'Imagem', active: false, action: () => imageInputRef.current?.click() },
+      { icon: Video, label: 'Video', active: false, action: () => videoInputRef.current?.click() },
     ],
-    [],
+    [toolbarState],
   )
 
   return (
@@ -121,10 +383,9 @@ export function RichTextEditor({
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               onChange={(event) => {
-                setCurrentFont(event.target.value)
                 exec('fontName', event.target.value)
               }}
-              value={currentFont}
+              value={toolbarState.currentFont}
             >
               {fonts.map((font) => (
                 <option key={font.value} value={font.value}>
@@ -135,10 +396,9 @@ export function RichTextEditor({
 
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              value={currentHeading}
+              value={toolbarState.currentHeading}
               onChange={(event) => {
-                setCurrentHeading(event.target.value)
-                exec('formatBlock', event.target.value)
+                applyBlockFormat(event.target.value)
               }}
             >
               {headings.map((heading) => (
@@ -150,19 +410,57 @@ export function RichTextEditor({
           </div>
 
           <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-max gap-2">
-              {toolbarButtons.map(({ icon: Icon, label, action }) => (
+            <div className="flex min-w-max flex-wrap gap-2">
+              {toolbarButtons.map(({ icon: Icon, label, action, active }) => (
                 <button
                   key={label}
                   type="button"
+                  onMouseDown={(event) => event.preventDefault()}
                   onClick={action}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900"
+                  className={cn(
+                    'inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition',
+                    active
+                      ? 'border-primary bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(49,92,67,0.2)]'
+                      : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900',
+                  )}
                   title={label}
                   aria-label={label}
+                  aria-pressed={active}
                 >
                   <Icon className="h-4 w-4" />
                 </button>
               ))}
+
+              <div
+                className={cn(
+                  'inline-flex h-11 items-center gap-2 rounded-2xl border px-3 shadow-sm transition',
+                  toolbarState.hasCustomColor
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-stone-200 bg-white text-stone-600',
+                )}
+                title="Cor do texto"
+              >
+                <Palette className="h-4 w-4" />
+                <input
+                  type="color"
+                  aria-label="Cor do texto"
+                  value={toolbarState.currentColor}
+                  onChange={(event) => {
+                    exec('foreColor', event.target.value)
+                  }}
+                  className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0"
+                />
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => exec('foreColor', getDefaultTextColor())}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+                  aria-label="Remover cor personalizada"
+                  title="Remover cor personalizada"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -174,6 +472,17 @@ export function RichTextEditor({
           contentEditable
           suppressContentEditableWarning
           onInput={emitChange}
+          onBlur={() => {
+            persistSelection()
+          }}
+          onKeyUp={() => {
+            persistSelection()
+            syncToolbarState()
+          }}
+          onMouseUp={() => {
+            persistSelection()
+            syncToolbarState()
+          }}
           className="rich-text-editor-content min-h-[260px] w-full px-4 py-4 text-[15px] leading-7 text-stone-800 outline-none md:min-h-[340px] md:px-5"
           data-placeholder={placeholder}
         />
@@ -184,7 +493,11 @@ export function RichTextEditor({
           <Type className="h-3.5 w-3.5" />
           HTML publicado no proprio sistema
         </span>
-        <span>{plainText ? `${plainText.length} caracteres no conteudo` : 'Editor pronto para receber texto, imagens e video'}</span>
+        <span>
+          {plainText
+            ? `${plainText.length} caracteres no conteudo`
+            : 'Editor pronto para receber texto, imagens, video, citacoes e cor'}
+        </span>
       </div>
 
       <input

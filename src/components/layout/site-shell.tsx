@@ -1,6 +1,5 @@
 import { BookOpen, Home, ScrollText } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import catechesisIlluminura from '@/assets/branding/catechesis-illuminura.png'
 import { cn } from '@/lib/utils'
 
 const navigation = [
@@ -12,14 +11,12 @@ const navigation = [
 export function SiteShell() {
   return (
     <div className="min-h-screen bg-ink-glow text-foreground">
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/70 bg-[rgba(251,247,235,0.86)] backdrop-blur">
-        <div className="mx-auto flex h-[88px] max-w-6xl items-center justify-between gap-3 px-4">
-          <Link to="/" className="relative h-[68px] w-[230px] shrink-0 overflow-hidden">
-            <img
-              src={catechesisIlluminura}
-              alt="Catechesis"
-              className="absolute left-0 top-1/2 h-[7.50rem] w-auto max-w-none -translate-y-1/2 sm:h-[5rem]"
-            />
+      <div className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/60 bg-[rgba(251,247,235,0.78)] backdrop-blur-xl">
+        <div className="mx-auto flex h-[96px] max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
+          <Link to="/" className="shrink-0 py-3">
+            <span className="font-display text-[1.65rem] tracking-[0.18em] text-stone-900 sm:text-[1.9rem]">
+              Catechesis
+            </span>
           </Link>
           <div className="hidden items-center gap-2 md:ml-auto md:flex">
             {navigation.map(({ to, label }) => (
@@ -40,7 +37,7 @@ export function SiteShell() {
         </div>
       </div>
 
-      <main className="pt-[88px]">
+      <main className="pt-[96px]">
         <Outlet />
       </main>
 

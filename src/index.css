@@ -152,6 +152,15 @@
     margin-bottom: 1rem;
   }
 
+  .rich-text-editor-content blockquote {
+    border-left: 4px solid hsl(var(--primary));
+    border-radius: 1.5rem;
+    background: rgb(245 245 244 / 0.88);
+    padding: 1rem 1.25rem;
+    font-style: italic;
+    color: rgb(68 64 60);
+  }
+
   .rich-text-editor-content ul,
   .rich-text-editor-content ol {
     padding-left: 1.5rem;

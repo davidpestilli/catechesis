@@ -25,7 +25,7 @@ export function HeroBanner({ settings, images }: HeroBannerProps) {
 
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="relative min-h-[90svh]">
+      <div className="relative min-h-[78svh]">
         {hasImages ? (
           <div className="absolute inset-0 overflow-hidden">
             {visibleImages.map((image, index) => {
@@ -56,16 +56,16 @@ export function HeroBanner({ settings, images }: HeroBannerProps) {
             <source src={settings.heroVideoUrl} type="video/mp4" />
           </video>
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,21,12,0.24),rgba(17,21,12,0.72))]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(235,213,151,0.22),transparent_26%),radial-gradient(circle_at_82%_72%,rgba(255,244,214,0.14),transparent_24%)]" />
-        <div className="relative z-10 mx-auto flex min-h-[90svh] max-w-6xl flex-col justify-end px-4 pb-24 pt-28 text-stone-50 sm:pb-16">
-          <div className="max-w-3xl">
-            <blockquote className="font-display text-4xl leading-tight text-stone-50 sm:text-6xl">
-              "Euntes in mundum universum, prædicate evangelium omni creaturæ."
-            </blockquote>
-            <p className="mt-4 font-serif text-base italic tracking-[0.04em] text-stone-100/90 sm:text-lg">
-              Marcus 16:15
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,21,12,0.18),rgba(17,21,12,0.56))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(235,213,151,0.16),transparent_28%),radial-gradient(circle_at_82%_72%,rgba(255,244,214,0.10),transparent_24%)]" />
+        <div className="relative z-10 mx-auto flex min-h-[78svh] max-w-6xl flex-col justify-center px-4 py-20 text-stone-50 sm:px-6 sm:py-24">
+          <div className="max-w-4xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-100/90">
+              Plataforma de catequese
             </p>
+            <h1 className="mt-5 max-w-4xl font-display text-5xl leading-[1.02] text-stone-50 sm:text-6xl lg:text-7xl">
+              Turmas, encontros e materiais em um so lugar
+            </h1>
           </div>
         </div>
       </div>
