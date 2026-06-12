@@ -87,6 +87,7 @@ function emptyGroup(): ClassGroup {
     slug: '',
     name: '',
     battleCry: '',
+    coverImageUrl: '',
     order: 1,
   }
 }
@@ -463,6 +464,38 @@ export function AdminDashboardPage() {
                       setGroupForm((current) => ({ ...current, battleCry: event.target.value }))
                     }
                   />
+                </div>
+                <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+                  <div className="space-y-2">
+                    <Label>Imagem da turma</Label>
+                    <Input
+                      value={groupForm.coverImageUrl ?? ''}
+                      onChange={(event) =>
+                        setGroupForm((current) => ({
+                          ...current,
+                          coverImageUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/75 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                      Preview da imagem
+                    </p>
+                    {groupForm.coverImageUrl ? (
+                      <img
+                        src={groupForm.coverImageUrl}
+                        alt="Preview da imagem da turma"
+                        className="mt-3 aspect-[4/3] w-full rounded-[18px] object-cover"
+                      />
+                    ) : (
+                      <div className="mt-3 flex aspect-[4/3] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                        Cole a URL da imagem para revisar a capa da turma aqui.
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button onClick={() => void handleSaveGroup()} disabled={saveGroup.isPending}>
                   {saveGroup.isPending ? 'Salvando...' : 'Salvar turma'}

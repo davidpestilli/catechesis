@@ -22,12 +22,21 @@ export function GroupDetailPage() {
   const encounters = data.encounters
     .filter((encounter) => encounter.groupId === group.id)
     .sort((first, second) => first.order - second.order)
+  const coverImageUrl = group.coverImageUrl ?? encounters[0]?.coverImageUrl
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 pb-24">
       <FloatingBackButton to="/encontros" label="Voltar para turmas" />
 
-      <Card className="mb-8">
+      <Card className="mb-8 overflow-hidden p-0">
+        {coverImageUrl ? (
+          <img
+            src={coverImageUrl}
+            alt={group.name}
+            className="h-56 w-full object-cover md:h-72"
+          />
+        ) : null}
+        <div className="p-6 md:p-8">
         <Badge>Turma</Badge>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -45,6 +54,7 @@ export function GroupDetailPage() {
               <p className="mt-2 text-lg font-semibold leading-7">{group.battleCry}</p>
             </div>
           ) : null}
+        </div>
         </div>
       </Card>
 

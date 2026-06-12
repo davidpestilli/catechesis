@@ -63,6 +63,7 @@ function buildLegacyGroups(encounters: Encounter[]) {
         slug: slugify(label),
         name: label,
         battleCry: '',
+        coverImageUrl: '',
         order: groupsByLabel.size + 1,
       })
     }
@@ -74,6 +75,7 @@ function buildLegacyGroups(encounters: Encounter[]) {
       slug: 'turma-geral',
       name: 'Turma geral',
       battleCry: '',
+      coverImageUrl: '',
       order: 1,
     }
     groupsByLabel.set(defaultGroup.name, defaultGroup)
@@ -196,6 +198,7 @@ export function upsertLocalGroup(input: Partial<ClassGroup> & Pick<ClassGroup, '
     slug: input.slug ?? slugify(input.name),
     name: input.name,
     battleCry: input.battleCry ?? '',
+    coverImageUrl: input.coverImageUrl ?? '',
     order: input.order ?? state.groups.length + 1,
   }
 

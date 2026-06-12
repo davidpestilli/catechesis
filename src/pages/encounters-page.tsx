@@ -18,7 +18,10 @@ export function EncountersPage() {
             key={group.id}
             group={group}
             encounterCount={data.encounters.filter((encounter) => encounter.groupId === group.id).length}
-            coverImageUrl={data.encounters.find((encounter) => encounter.groupId === group.id)?.coverImageUrl}
+            coverImageUrl={
+              group.coverImageUrl ??
+              data.encounters.find((encounter) => encounter.groupId === group.id)?.coverImageUrl
+            }
           />
         ))}
       </div>

@@ -42,6 +42,7 @@ export interface ClassGroup {
   slug: string
   name: string
   battleCry: string
+  coverImageUrl?: string
   order: number
 }
 

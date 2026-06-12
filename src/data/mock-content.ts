@@ -27,6 +27,8 @@ export const defaultCMSState: CMSState = {
       slug: 'turma-sao-pedro',
       name: 'Turma Sao Pedro',
       battleCry: 'Firmes na fe, alegres na missao.',
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
       order: 1,
     },
     {
@@ -34,6 +36,8 @@ export const defaultCMSState: CMSState = {
       slug: 'turma-sao-paulo',
       name: 'Turma Sao Paulo',
       battleCry: 'Anunciar, servir e caminhar juntos.',
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80',
       order: 2,
     },
   ],

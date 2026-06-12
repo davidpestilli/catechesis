@@ -114,6 +114,7 @@ async function mapSupabaseState(): Promise<CMSState> {
       slug: group.slug,
       name: group.name,
       battleCry: group.battle_cry ?? '',
+      coverImageUrl: group.cover_image_url ?? undefined,
       order: group.order_index ?? 1,
     })) ?? []
 
@@ -298,6 +299,7 @@ export const cmsService = {
       slug: group.slug,
       name: group.name,
       battle_cry: group.battleCry,
+      cover_image_url: group.coverImageUrl,
       order_index: group.order,
     }
 
@@ -310,6 +312,7 @@ export const cmsService = {
       slug: data.slug,
       name: data.name,
       battleCry: data.battle_cry ?? '',
+      coverImageUrl: data.cover_image_url ?? undefined,
       order: data.order_index ?? 1,
     } satisfies ClassGroup
   },

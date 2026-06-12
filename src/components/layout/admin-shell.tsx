@@ -27,16 +27,14 @@ export function AdminShell() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(214,191,132,0.24),transparent_30%),linear-gradient(180deg,#f8f4ea_0%,#efe6d2_100%)] text-foreground">
       <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-[rgba(250,246,236,0.92)] backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="shrink-0 py-2">
             <span className="font-display text-[1.6rem] tracking-[0.14em] text-stone-900 sm:text-[1.8rem]">
               Catechesis
             </span>
           </Link>
 
-          <div className="min-w-[220px] flex-1" />
-
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link to="/">
                 <SquareArrowOutUpRight className="mr-2 h-4 w-4" />

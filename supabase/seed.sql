@@ -14,6 +14,7 @@ insert into public.class_groups (
   slug,
   name,
   battle_cry,
+  cover_image_url,
   order_index
 )
 values (
@@ -21,6 +22,7 @@ values (
   'turma-sao-pedro',
   'Turma Sao Pedro',
   'Firmes na fe, alegres na missao.',
+  'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
   1
 ),
 (
@@ -28,6 +30,7 @@ values (
   'turma-sao-paulo',
   'Turma Sao Paulo',
   'Anunciar, servir e caminhar juntos.',
+  'https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80',
   2
 )
 on conflict (id) do update
@@ -35,6 +38,7 @@ set
   slug = excluded.slug,
   name = excluded.name,
   battle_cry = excluded.battle_cry,
+  cover_image_url = excluded.cover_image_url,
   order_index = excluded.order_index,
   updated_at = timezone('utc', now());
 
