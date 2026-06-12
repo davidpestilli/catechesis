@@ -1,5 +1,6 @@
 import { createDefaultLandingImages } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
+import { normalizeArticleCategory } from '@/lib/diversos'
 import { hasSupabaseConfig } from '@/lib/env'
 import { ensureUuid, fileToDataUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,7 @@ import {
   upsertLocalAsset,
   upsertLocalEncounter,
   upsertLocalQuiz,
+  upsertLocalUsefulLink,
 } from '@/services/local-cms'
 import type {
   Article,
@@ -22,6 +24,7 @@ import type {
   LandingImageMotion,
   LandingSlide,
   SiteSettings,
+  UsefulLink,
 } from '@/types/content'
 
 const STORAGE_BUCKET = 'catechesis-media'
@@ -75,6 +78,7 @@ function buildFallbackState(partial?: Partial<CMSState>): CMSState {
     groups: partial?.groups?.length ? partial.groups : fallback.groups,
     encounters: partial?.encounters?.length ? partial.encounters : fallback.encounters,
     articles: partial?.articles?.length ? partial.articles : fallback.articles,
+    usefulLinks: partial?.usefulLinks?.length ? partial.usefulLinks : fallback.usefulLinks,
     updatedAt: partial?.updatedAt ?? new Date().toISOString(),
   }
 }
@@ -84,7 +88,17 @@ async function mapSupabaseState(): Promise<CMSState> {
     return cloneDefaultState()
   }
 
-  const [groupsRes, encountersRes, assetsRes, quizzesRes, questionsRes, optionsRes, articlesRes, settingsRes] =
+  const [
+    groupsRes,
+    encountersRes,
+    assetsRes,
+    quizzesRes,
+    questionsRes,
+    optionsRes,
+    articlesRes,
+    usefulLinksRes,
+    settingsRes,
+  ] =
     await Promise.all([
       supabase.from('class_groups').select('*').order('order_index'),
       supabase.from('encounters').select('*').order('order_index'),
@@ -93,6 +107,7 @@ async function mapSupabaseState(): Promise<CMSState> {
       supabase.from('quiz_questions').select('*').order('order_index'),
       supabase.from('quiz_options').select('*').order('order_index'),
       supabase.from('articles').select('*').order('published_at', { ascending: false }),
+      supabase.from('useful_links').select('*').order('order_index'),
       supabase.from('site_settings').select('*').eq('key', 'home').maybeSingle(),
     ])
 
@@ -103,7 +118,8 @@ async function mapSupabaseState(): Promise<CMSState> {
     quizzesRes.error ||
     questionsRes.error ||
     optionsRes.error ||
-    articlesRes.error
+    articlesRes.error ||
+    usefulLinksRes.error
   ) {
     throw new Error('Nao foi possivel carregar o conteudo salvo no Supabase.')
   }
@@ -203,10 +219,21 @@ async function mapSupabaseState(): Promise<CMSState> {
         title: article.title,
         excerpt: article.excerpt ?? '',
         contentHtml: article.content_html,
+        category: normalizeArticleCategory(article.category),
         tags: article.tags ?? [],
         featured: article.featured ?? false,
         coverImageUrl: article.cover_image_url ?? undefined,
         publishedAt: article.published_at ?? new Date().toISOString(),
+      })) ?? [],
+    usefulLinks:
+      (usefulLinksRes.data ?? []).map((usefulLink) => ({
+        id: usefulLink.id,
+        title: usefulLink.title,
+        description: usefulLink.description ?? '',
+        url: usefulLink.url,
+        tags: usefulLink.tags ?? [],
+        coverImageUrl: usefulLink.cover_image_url ?? undefined,
+        order: usefulLink.order_index ?? 1,
       })) ?? [],
     updatedAt: new Date().toISOString(),
   })
@@ -331,6 +358,7 @@ export const cmsService = {
       title: article.title,
       excerpt: article.excerpt,
       content_html: article.contentHtml,
+      category: normalizeArticleCategory(article.category),
       tags: article.tags,
       featured: article.featured,
       cover_image_url: article.coverImageUrl,
@@ -347,11 +375,45 @@ export const cmsService = {
       title: data.title,
       excerpt: data.excerpt ?? '',
       contentHtml: data.content_html,
+      category: normalizeArticleCategory(data.category),
       tags: data.tags ?? [],
       featured: data.featured ?? false,
       coverImageUrl: data.cover_image_url ?? undefined,
       publishedAt: data.published_at ?? new Date().toISOString(),
     } satisfies Article
+  },
+
+  async saveUsefulLink(usefulLink: Partial<UsefulLink> & Pick<UsefulLink, 'title' | 'url'>) {
+    if (!supabase) {
+      return upsertLocalUsefulLink({
+        ...usefulLink,
+        id: ensureUuid(usefulLink.id),
+      })
+    }
+
+    const payload = {
+      id: ensureUuid(usefulLink.id),
+      title: usefulLink.title,
+      description: usefulLink.description,
+      url: usefulLink.url,
+      tags: usefulLink.tags,
+      cover_image_url: usefulLink.coverImageUrl,
+      order_index: usefulLink.order,
+    }
+
+    const { data, error } = await supabase.from('useful_links').upsert(payload).select('*').single()
+
+    if (error) throw new Error(error.message)
+
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description ?? '',
+      url: data.url,
+      tags: data.tags ?? [],
+      coverImageUrl: data.cover_image_url ?? undefined,
+      order: data.order_index ?? 1,
+    } satisfies UsefulLink
   },
 
   async saveAsset(asset: EncounterAsset, file?: File | null) {

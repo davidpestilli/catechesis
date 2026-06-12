@@ -2,6 +2,7 @@ export type AssetKind = 'summary' | 'support'
 export type AssetView = 'image' | 'pdf' | 'html' | 'video' | 'link'
 export type MaterialCategory = 'video' | 'image' | 'text' | 'website' | 'book'
 export type LandingImageMotion = 'drift-a' | 'drift-b' | 'drift-c'
+export type ArticleCategory = 'general' | 'saints-life'
 
 export interface EncounterAsset {
   id: string
@@ -68,10 +69,21 @@ export interface Article {
   title: string
   excerpt: string
   contentHtml: string
+  category: ArticleCategory
   tags: string[]
   coverImageUrl?: string
   featured?: boolean
   publishedAt: string
+}
+
+export interface UsefulLink {
+  id: string
+  title: string
+  description: string
+  url: string
+  tags: string[]
+  coverImageUrl?: string
+  order: number
 }
 
 export interface LandingSlide {
@@ -92,6 +104,7 @@ export interface CMSState {
   groups: ClassGroup[]
   encounters: Encounter[]
   articles: Article[]
+  usefulLinks: UsefulLink[]
   settings: SiteSettings
   updatedAt: string
 }

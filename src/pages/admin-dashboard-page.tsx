@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { DiversosPanel } from '@/components/admin/diversos-panel'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCMSState,
-  useSaveArticle,
   useSaveAsset,
   useSaveEncounter,
   useSaveGroup,
@@ -21,7 +21,6 @@ import { cmsService } from '@/services/cms-service'
 import { materialCategoryConfigs } from '@/lib/encounter-materials'
 import { cn, createId, fileToDataUrl, slugify } from '@/lib/utils'
 import type {
-  Article,
   ClassGroup,
   Encounter,
   EncounterAsset,
@@ -109,20 +108,6 @@ function emptyEncounter(groupId = ''): Encounter {
   }
 }
 
-function emptyArticle(): Article {
-  return {
-    id: createId(),
-    slug: '',
-    title: '',
-    excerpt: '',
-    contentHtml: '',
-    tags: [],
-    coverImageUrl: '',
-    featured: false,
-    publishedAt: new Date().toISOString(),
-  }
-}
-
 function emptyQuiz(encounterId = ''): EncounterQuiz {
   return {
     id: createId(),
@@ -157,14 +142,12 @@ export function AdminDashboardPage() {
   const { data } = useCMSState()
   const saveGroup = useSaveGroup()
   const saveEncounter = useSaveEncounter()
-  const saveArticle = useSaveArticle()
   const saveAsset = useSaveAsset()
   const saveQuiz = useSaveQuiz()
   const saveSettings = useSaveSettings()
 
   const [groupForm, setGroupForm] = useState<ClassGroup>(emptyGroup())
   const [encounterForm, setEncounterForm] = useState<Encounter>(emptyEncounter())
-  const [articleForm, setArticleForm] = useState<Article>(emptyArticle())
   const [quizForm, setQuizForm] = useState<EncounterQuiz>(emptyQuiz())
   const [settingsForm, setSettingsForm] = useState<SiteSettings | null>(null)
   const [assetForm, setAssetForm] = useState<EncounterAsset>({
@@ -240,16 +223,6 @@ export function AdminDashboardPage() {
     })
     setEncounterForm(emptyEncounter(groupOptions[0]?.id ?? ''))
     toast.success('Encontro salvo.')
-  }
-
-  async function handleSaveArticle() {
-    await saveArticle.mutateAsync({
-      ...articleForm,
-      slug: slugify(articleForm.slug || articleForm.title),
-      tags: articleForm.tags,
-    })
-    setArticleForm(emptyArticle())
-    toast.success('Artigo salvo.')
   }
 
   async function handleSaveAsset() {
@@ -405,7 +378,7 @@ export function AdminDashboardPage() {
           <TabsTrigger className="shrink-0" value="assets">Materiais</TabsTrigger>
           <TabsTrigger className="shrink-0" value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger className="shrink-0" value="slideshow">Slideshow</TabsTrigger>
-          <TabsTrigger className="shrink-0" value="articles">Artigos</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="misc">Diversos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="groups">
@@ -1203,94 +1176,8 @@ export function AdminDashboardPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="articles">
-          <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-            <Card>
-              <CardTitle>Artigos publicados</CardTitle>
-              <div className="mt-5 space-y-3">
-                {data.articles.map((article) => (
-                  <button
-                    key={article.id}
-                    type="button"
-                    onClick={() => setArticleForm(article)}
-                    className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left"
-                  >
-                    <p className="font-semibold text-stone-900">{article.title}</p>
-                    <p className="mt-1 text-sm text-stone-600">{article.excerpt}</p>
-                  </button>
-                ))}
-              </div>
-            </Card>
-            <Card>
-              <CardTitle>{articleForm.title ? 'Editar artigo' : 'Novo artigo'}</CardTitle>
-              <CardDescription className="mt-2">
-                O editor gera HTML rico no proprio sistema e pode ser publicado em rota independente.
-              </CardDescription>
-              <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Titulo</Label>
-                    <Input
-                      value={articleForm.title}
-                      onChange={(event) => setArticleForm((current) => ({ ...current, title: event.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Slug</Label>
-                    <Input
-                      value={articleForm.slug}
-                      onChange={(event) => setArticleForm((current) => ({ ...current, slug: event.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Resumo</Label>
-                    <Textarea
-                      value={articleForm.excerpt}
-                      onChange={(event) =>
-                        setArticleForm((current) => ({ ...current, excerpt: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tags</Label>
-                    <Textarea
-                      value={articleForm.tags.join(', ')}
-                      onChange={(event) =>
-                        setArticleForm((current) => ({
-                          ...current,
-                          tags: event.target.value
-                            .split(',')
-                            .map((tag) => tag.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Imagem de capa</Label>
-                  <Input
-                    value={articleForm.coverImageUrl ?? ''}
-                    onChange={(event) =>
-                      setArticleForm((current) => ({ ...current, coverImageUrl: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Conteudo</Label>
-                  <RichTextEditor
-                    value={articleForm.contentHtml}
-                    onChange={(contentHtml) => setArticleForm((current) => ({ ...current, contentHtml }))}
-                  />
-                </div>
-                <Button onClick={() => void handleSaveArticle()} disabled={saveArticle.isPending}>
-                  {saveArticle.isPending ? 'Salvando...' : 'Salvar artigo'}
-                </Button>
-              </div>
-            </Card>
-          </div>
+        <TabsContent value="misc">
+          <DiversosPanel />
         </TabsContent>
 
       </Tabs>

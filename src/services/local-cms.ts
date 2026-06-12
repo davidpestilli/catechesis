@@ -1,5 +1,6 @@
 import { createDefaultLandingImages } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
+import { normalizeArticleCategory } from '@/lib/diversos'
 import { createId, ensureUuid, slugify } from '@/lib/utils'
 import type {
   Article,
@@ -11,6 +12,7 @@ import type {
   LandingImageMotion,
   LandingSlide,
   SiteSettings,
+  UsefulLink,
 } from '@/types/content'
 
 const STORAGE_KEY = 'catechesis-local-cms'
@@ -112,6 +114,13 @@ function sanitizeCMSState(state: CMSState): CMSState {
   const normalizedState = normalizeCMSState(state)
   return {
     ...normalizedState,
+    articles: normalizedState.articles.map((article) => ({
+      ...article,
+      category: normalizeArticleCategory(article.category),
+    })),
+    usefulLinks: Array.isArray(normalizedState.usefulLinks)
+      ? normalizedState.usefulLinks
+      : structuredClone(defaultCMSState.usefulLinks),
     settings: {
       ...normalizedState.settings,
       homeLead: sanitizeHomeLead(normalizedState.settings?.homeLead),
@@ -223,6 +232,7 @@ export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'titl
     title: input.title,
     excerpt: input.excerpt ?? '',
     contentHtml: input.contentHtml,
+    category: normalizeArticleCategory(input.category),
     tags: input.tags ?? [],
     featured: input.featured ?? false,
     coverImageUrl: input.coverImageUrl,
@@ -239,6 +249,31 @@ export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'titl
 
   saveLocalCMSState(state)
   return article
+}
+
+export function upsertLocalUsefulLink(input: Partial<UsefulLink> & Pick<UsefulLink, 'title' | 'url'>) {
+  const state = getLocalCMSState()
+  const id = ensureUuid(input.id)
+  const usefulLink: UsefulLink = {
+    id,
+    title: input.title,
+    description: input.description ?? '',
+    url: input.url,
+    tags: input.tags ?? [],
+    coverImageUrl: input.coverImageUrl,
+    order: input.order ?? state.usefulLinks.length + 1,
+  }
+
+  const existingIndex = state.usefulLinks.findIndex((item) => item.id === id)
+
+  if (existingIndex >= 0) {
+    state.usefulLinks[existingIndex] = usefulLink
+  } else {
+    state.usefulLinks.push(usefulLink)
+  }
+
+  saveLocalCMSState(state)
+  return usefulLink
 }
 
 export function upsertLocalAsset(asset: EncounterAsset) {

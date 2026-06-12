@@ -287,12 +287,50 @@ export const defaultCMSState: CMSState = {
       excerpt:
         'Um guia breve para preparar acolhida, proclamacao da Palavra, dinamica e envio com intencionalidade pastoral.',
       publishedAt: new Date().toISOString(),
+      category: 'general',
       featured: true,
       tags: ['metodologia', 'planejamento', 'catequese'],
       coverImageUrl:
         'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
       contentHtml:
         '<h2>Antes do encontro</h2><p>Planeje o objetivo, a passagem biblica central e o gesto concreto que ajudara a turma a guardar a experiencia.</p><h2>Durante o encontro</h2><p>Varie os ritmos entre escuta, conversa, silencio e celebracao.</p><blockquote>A catequese floresce quando o conteudo encontra a vida.</blockquote>',
+    },
+    {
+      id: createId(),
+      slug: 'sao-francisco-de-assis-e-a-alegria-do-evangelho',
+      title: 'Sao Francisco de Assis e a alegria do Evangelho',
+      excerpt:
+        'Uma leitura breve sobre simplicidade, louvor e testemunho a partir da vida de Sao Francisco.',
+      publishedAt: new Date().toISOString(),
+      category: 'saints-life',
+      featured: false,
+      tags: ['santos', 'testemunho', 'espiritualidade'],
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+      contentHtml:
+        '<h2>Um coracao livre</h2><p>Sao Francisco descobriu no Evangelho um caminho de liberdade, pobreza e fraternidade.</p><h2>Para a catequese</h2><p>Sua vida ajuda a aproximar os catequizandos da alegria simples de seguir Jesus com inteireza.</p>',
+    },
+  ],
+  usefulLinks: [
+    {
+      id: createId(),
+      title: 'Portal do Vaticano',
+      description: 'Documentos, noticias e textos oficiais para consulta e aprofundamento.',
+      url: 'https://www.vatican.va',
+      tags: ['igreja', 'documentos', 'vaticano'],
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=80',
+      order: 1,
+    },
+    {
+      id: createId(),
+      title: 'Biblia Online - CNBB',
+      description: 'Leitura e pesquisa das Sagradas Escrituras em ambiente digital.',
+      url: 'https://www.bibliacatolica.com.br',
+      tags: ['biblia', 'leitura', 'estudo'],
+      coverImageUrl:
+        'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
+      order: 2,
     },
   ],
   updatedAt: new Date().toISOString(),

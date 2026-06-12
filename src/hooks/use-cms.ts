@@ -7,6 +7,7 @@ import type {
   EncounterAsset,
   EncounterQuiz,
   SiteSettings,
+  UsefulLink,
 } from '@/types/content'
 
 export function useCMSState() {
@@ -38,6 +39,15 @@ export function useSaveArticle() {
   return useMutation({
     mutationFn: (article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) =>
       cmsService.saveArticle(article),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cms-state'] }),
+  })
+}
+
+export function useSaveUsefulLink() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (usefulLink: Partial<UsefulLink> & Pick<UsefulLink, 'title' | 'url'>) =>
+      cmsService.saveUsefulLink(usefulLink),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cms-state'] }),
   })
 }

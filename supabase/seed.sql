@@ -320,6 +320,7 @@ insert into public.articles (
   title,
   excerpt,
   content_html,
+  category,
   tags,
   cover_image_url,
   featured
@@ -330,9 +331,21 @@ values (
   'Como organizar um encontro catequetico',
   'Guia breve para preparar acolhida, Palavra, dinamica e envio com intencionalidade pastoral.',
   '<h2>Antes do encontro</h2><p>Planeje o objetivo, a passagem biblica central e o gesto concreto do dia.</p><h2>Durante o encontro</h2><p>Varie os ritmos entre escuta, conversa, silencio e celebracao.</p><blockquote>A catequese floresce quando o conteudo encontra a vida.</blockquote>',
+  'general',
   array['metodologia', 'planejamento', 'catequese'],
   'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
   true
+),
+(
+  '88888888-8888-8888-8888-888888888889',
+  'sao-francisco-de-assis-e-a-alegria-do-evangelho',
+  'Sao Francisco de Assis e a alegria do Evangelho',
+  'Uma leitura breve sobre simplicidade, louvor e testemunho a partir da vida de Sao Francisco.',
+  '<h2>Um coracao livre</h2><p>Sao Francisco descobriu no Evangelho um caminho de liberdade, pobreza e fraternidade.</p><h2>Para a catequese</h2><p>Sua vida ajuda a aproximar os catequizandos da alegria simples de seguir Jesus com inteireza.</p>',
+  'saints-life',
+  array['santos', 'testemunho', 'espiritualidade'],
+  'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+  false
 )
 on conflict (id) do update
 set
@@ -340,7 +353,45 @@ set
   title = excluded.title,
   excerpt = excluded.excerpt,
   content_html = excluded.content_html,
+  category = excluded.category,
   tags = excluded.tags,
   cover_image_url = excluded.cover_image_url,
   featured = excluded.featured,
+  updated_at = timezone('utc', now());
+
+insert into public.useful_links (
+  id,
+  title,
+  description,
+  url,
+  tags,
+  cover_image_url,
+  order_index
+)
+values (
+  '99999999-8888-7777-6666-555555555551',
+  'Portal do Vaticano',
+  'Documentos, noticias e textos oficiais para consulta e aprofundamento.',
+  'https://www.vatican.va',
+  array['igreja', 'documentos', 'vaticano'],
+  'https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=80',
+  1
+),
+(
+  '99999999-8888-7777-6666-555555555552',
+  'Biblia Online - CNBB',
+  'Leitura e pesquisa das Sagradas Escrituras em ambiente digital.',
+  'https://www.bibliacatolica.com.br',
+  array['biblia', 'leitura', 'estudo'],
+  'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
+  2
+)
+on conflict (id) do update
+set
+  title = excluded.title,
+  description = excluded.description,
+  url = excluded.url,
+  tags = excluded.tags,
+  cover_image_url = excluded.cover_image_url,
+  order_index = excluded.order_index,
   updated_at = timezone('utc', now());

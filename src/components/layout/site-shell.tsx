@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 const navigation = [
   { to: '/', label: 'Início', icon: Home, ornate: true },
   { to: '/encontros', label: 'Turmas', icon: BookOpen, ornate: true },
-  { to: '/artigos', label: 'Artigos', icon: ScrollText, ornate: true },
+  { to: '/diversos', label: 'Diversos', icon: ScrollText, ornate: true },
 ]
 
 export function SiteShell() {

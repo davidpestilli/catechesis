@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 import type { Article } from '@/types/content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { getArticlePath } from '@/lib/diversos'
 import { formatDate } from '@/lib/utils'
 
 export function ArticleCard({ article }: { article: Article }) {
@@ -21,7 +22,7 @@ export function ArticleCard({ article }: { article: Article }) {
       <div className="mt-5 flex items-center justify-between text-sm text-stone-500">
         <span>{formatDate(article.publishedAt)}</span>
         <Link
-          to={`/artigos/${article.slug}`}
+          to={getArticlePath(article)}
           className="inline-flex items-center gap-2 font-semibold text-stone-900"
         >
           Ler artigo
