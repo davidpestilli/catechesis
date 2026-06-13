@@ -40,6 +40,7 @@ export function HeroBanner({ settings }: HeroBannerProps) {
                   <img
                     src={image.src}
                     alt={image.alt}
+                    referrerPolicy="no-referrer"
                     className={`hero-slide-image hero-slide-${image.motion}`}
                   />
                 </div>

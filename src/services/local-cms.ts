@@ -1,4 +1,8 @@
-import { createDefaultLandingImages } from '@/data/landing-images'
+import {
+  createDefaultLandingImages,
+  resolveLandingImageSrc,
+  serializeLandingImageSrc,
+} from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
 import { normalizeArticleCategory } from '@/lib/diversos'
 import { createId, ensureUuid, slugify } from '@/lib/utils'
@@ -44,7 +48,7 @@ function sanitizeLandingImages(value: unknown) {
 
       return {
         id: ensureUuid(candidate.id),
-        src,
+        src: resolveLandingImageSrc(src),
         alt: typeof candidate.alt === 'string' ? candidate.alt.trim() : '',
         motion: landingImageMotions.has(candidate.motion as LandingImageMotion)
           ? (candidate.motion as LandingImageMotion)
@@ -330,7 +334,10 @@ export function saveLocalSettings(settings: SiteSettings) {
   state.settings = {
     ...settings,
     homeLead: sanitizeHomeLead(settings.homeLead),
-    landingImages: sanitizeLandingImages(settings.landingImages),
+    landingImages: sanitizeLandingImages(settings.landingImages).map((image) => ({
+      ...image,
+      src: serializeLandingImageSrc(image.src),
+    })),
   }
   saveLocalCMSState(state)
   return state.settings

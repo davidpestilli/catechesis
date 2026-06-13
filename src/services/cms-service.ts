@@ -1,4 +1,8 @@
-import { createDefaultLandingImages } from '@/data/landing-images'
+import {
+  createDefaultLandingImages,
+  resolveLandingImageSrc,
+  serializeLandingImageSrc,
+} from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
 import { normalizeArticleCategory } from '@/lib/diversos'
 import { hasSupabaseConfig } from '@/lib/env'
@@ -56,7 +60,7 @@ function sanitizeLandingImages(value: unknown) {
 
       return {
         id: ensureUuid(candidate.id),
-        src,
+        src: resolveLandingImageSrc(src),
         alt: typeof candidate.alt === 'string' ? candidate.alt.trim() : '',
         motion: landingImageMotions.has(candidate.motion as LandingImageMotion)
           ? (candidate.motion as LandingImageMotion)
@@ -549,7 +553,13 @@ export const cmsService = {
 
     const { error } = await supabase.from('site_settings').upsert({
       key: 'home',
-      value: normalizedSettings,
+      value: {
+        ...normalizedSettings,
+        landingImages: normalizedSettings.landingImages.map((image) => ({
+          ...image,
+          src: serializeLandingImageSrc(image.src),
+        })),
+      },
     })
 
     if (error) throw new Error(error.message)
