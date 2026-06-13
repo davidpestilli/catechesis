@@ -24,7 +24,7 @@ interface CommentFormProps {
   contentId: string
   parentCommentId?: string
   onCancel?: () => void
-  onSubmitted?: () => void
+  onSubmitted?: (result: { subscriptionConfirmationNeeded: boolean }) => void
   submitLabel: string
 }
 
@@ -75,7 +75,7 @@ function CommentForm({
     }
 
     try {
-      await createComment.mutateAsync({
+      const result = await createComment.mutateAsync({
         contentType,
         contentId,
         parentCommentId,
@@ -96,7 +96,9 @@ function CommentForm({
       }
 
       toast.success(parentCommentId ? 'Resposta publicada.' : 'Comentario publicado.')
-      onSubmitted?.()
+      onSubmitted?.({
+        subscriptionConfirmationNeeded: result.subscriptionConfirmationNeeded,
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Nao foi possivel publicar o comentario.')
     }
@@ -215,10 +217,12 @@ function CommentThread({
   contentType,
   contentId,
   root,
+  onSubscriptionNoticeNeeded,
 }: {
   contentType: CommentContentType
   contentId: string
   root: Comment
+  onSubscriptionNoticeNeeded: () => void
 }) {
   const [isReplying, setIsReplying] = useState(false)
 
@@ -238,7 +242,13 @@ function CommentThread({
             contentId={contentId}
             parentCommentId={root.id}
             onCancel={() => setIsReplying(false)}
-            onSubmitted={() => setIsReplying(false)}
+            onSubmitted={(result) => {
+              setIsReplying(false)
+
+              if (result.subscriptionConfirmationNeeded) {
+                onSubscriptionNoticeNeeded()
+              }
+            }}
             submitLabel="Publicar resposta"
           />
         </div>
@@ -258,6 +268,7 @@ function CommentThread({
 export function CommentSection({ contentType, contentId }: CommentSectionProps) {
   const [page, setPage] = useState(1)
   const [isOpen, setIsOpen] = useState(false)
+  const [subscriptionNoticeVisible, setSubscriptionNoticeVisible] = useState(false)
   const isAvailable = commentService.isAvailable()
   const location = useLocation()
   const threadId = new URLSearchParams(location.search).get('thread')
@@ -265,6 +276,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
 
   useEffect(() => {
     setPage(1)
+    setSubscriptionNoticeVisible(false)
   }, [contentId, contentType])
 
   useEffect(() => {
@@ -322,8 +334,25 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
 
       {isOpen ? (
         <div className="space-y-6 border-t border-stone-200/80 p-5 sm:p-6">
+          {subscriptionNoticeVisible ? (
+            <div className="rounded-[28px] border border-amber-300 bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,247,237,0.98))] px-5 py-4 text-sm leading-7 text-amber-950 shadow-[0_18px_45px_rgba(146,64,14,0.08)]">
+              <p className="font-semibold uppercase tracking-[0.18em] text-amber-800">Verifique seu email</p>
+              <p className="mt-2">
+                Enviamos um email confirmando a assinatura desta thread. Ele pode levar alguns minutos para chegar.
+                Se cair na caixa de spam, mova-o para a caixa principal para ajudar no recebimento dos proximos emails do sistema.
+              </p>
+            </div>
+          ) : null}
+
           {isAvailable ? (
-            <CommentForm contentType={contentType} contentId={contentId} submitLabel="Publicar comentario" />
+            <CommentForm
+              contentType={contentType}
+              contentId={contentId}
+              submitLabel="Publicar comentario"
+              onSubmitted={(result) => {
+                setSubscriptionNoticeVisible(result.subscriptionConfirmationNeeded)
+              }}
+            />
           ) : (
             <div className="rounded-[28px] border border-dashed border-stone-300 bg-stone-50/90 px-5 py-4 text-sm text-stone-600">
               Comentarios indisponiveis enquanto o Supabase e o Worker nao estiverem configurados.
@@ -346,6 +375,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
                       contentType={contentType}
                       contentId={contentId}
                       root={root}
+                      onSubscriptionNoticeNeeded={() => setSubscriptionNoticeVisible(true)}
                     />
                   ))
                 ) : (

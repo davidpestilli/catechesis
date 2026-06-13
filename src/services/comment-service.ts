@@ -1,6 +1,12 @@
 import { env } from '@/lib/env'
 import { supabase } from '@/lib/supabase'
-import type { Comment, CommentDraft, CommentPage, CommentContentType } from '@/types/content'
+import type {
+  Comment,
+  CommentDraft,
+  CommentPage,
+  CommentContentType,
+  CreateCommentResult,
+} from '@/types/content'
 
 const COMMENTS_PAGE_SIZE = 20
 
@@ -115,7 +121,7 @@ export const commentService = {
     }
   },
 
-  async createComment(input: CommentDraft) {
+  async createComment(input: CommentDraft): Promise<CreateCommentResult> {
     if (!env.workerUrl) {
       throw new Error('A URL do Worker nao foi configurada.')
     }
@@ -131,13 +137,16 @@ export const commentService = {
     })
 
     const payload = (await response.json().catch(() => null)) as
-      | { comment?: CommentRow; error?: string }
+      | { comment?: CommentRow; error?: string; subscriptionConfirmationNeeded?: boolean }
       | null
 
     if (!response.ok || !payload?.comment) {
       throw new Error(payload?.error ?? 'Nao foi possivel publicar o comentario.')
     }
 
-    return mapComment(payload.comment)
+    return {
+      comment: mapComment(payload.comment),
+      subscriptionConfirmationNeeded: Boolean(payload.subscriptionConfirmationNeeded),
+    }
   },
 }

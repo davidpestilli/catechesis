@@ -859,7 +859,15 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
 
     await notifyThreadParticipants(env, comment, workerBaseUrl)
 
-    return json({ ok: true, comment: toPublicComment(comment) }, 201, headers)
+    return json(
+      {
+        ok: true,
+        comment: toPublicComment(comment),
+        subscriptionConfirmationNeeded: Boolean(createdOptInSubscription),
+      },
+      201,
+      headers,
+    )
   } catch (error) {
     return json(
       {

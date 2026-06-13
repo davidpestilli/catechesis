@@ -151,3 +151,8 @@ export interface CommentDraft {
   body: string
   notifyReplies: boolean
 }
+
+export interface CreateCommentResult {
+  comment: Comment
+  subscriptionConfirmationNeeded: boolean
+}
