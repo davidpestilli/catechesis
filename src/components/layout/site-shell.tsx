@@ -15,7 +15,7 @@ export function SiteShell() {
         <div className="mx-auto grid h-[96px] max-w-6xl grid-cols-1 items-center px-4 sm:px-6 md:grid-cols-[1fr_auto]">
           <Link to="/" className="justify-self-center py-3 md:justify-self-start">
             <span className="font-gothic text-[2rem] tracking-[0.08em] text-stone-900 sm:text-[2.2rem]">
-              Catechesis
+              Catequético
             </span>
           </Link>
           <div className="hidden items-center gap-2 md:justify-self-end md:flex">

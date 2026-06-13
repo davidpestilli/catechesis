@@ -18,7 +18,7 @@ export interface LandingImagePreset {
 export const landingImagePresets: LandingImagePreset[] = [
   {
     src: hero01,
-    alt: 'Ilustracao luminosa de basilica para a abertura do Catechesis.',
+    alt: 'Ilustracao luminosa de basilica para a abertura do Catequético.',
     motion: 'drift-a',
   },
   {

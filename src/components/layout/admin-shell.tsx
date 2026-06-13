@@ -30,7 +30,7 @@ export function AdminShell() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="shrink-0 py-2">
             <span className="font-display text-[1.6rem] tracking-[0.14em] text-stone-900 sm:text-[1.8rem]">
-              Catechesis
+              Catequético
             </span>
           </Link>
 

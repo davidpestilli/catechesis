@@ -8,7 +8,7 @@ export function NotFoundPage() {
       <Card>
         <CardTitle>Pagina nao encontrada</CardTitle>
         <CardDescription className="mt-2">
-          O conteudo procurado nao existe ou ainda nao foi publicado no Catechesis.
+          O conteudo procurado nao existe ou ainda nao foi publicado no Catequético.
         </CardDescription>
       </Card>
     </section>

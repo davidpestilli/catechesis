@@ -606,7 +606,7 @@ export default {
       return json(
         {
           ok: true,
-          site: 'Catechesis',
+          site: 'Catequético',
           storageBucket: runtimeEnv.SUPABASE_STORAGE_BUCKET,
           note: 'A service_role permanece no Worker. A anon key nao e devolvida por este endpoint.',
         },

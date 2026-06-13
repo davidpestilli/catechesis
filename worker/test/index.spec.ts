@@ -33,7 +33,7 @@ describe('catechesis gateway worker', () => {
 
     expect(response.status).toBe(200)
     expect(payload.ok).toBe(true)
-    expect(payload.site).toBe('Catechesis')
+    expect(payload.site).toBe('Catequético')
     expect(payload.storageBucket).toBe(env.SUPABASE_STORAGE_BUCKET)
   })
 

@@ -1,4 +1,4 @@
-# Catechesis
+# Catequético
 
 Projeto base para um site de apoio ao ensino de catequese com:
 

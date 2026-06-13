@@ -39,7 +39,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_CLOUDFLARE_WORKER_URL: https://catechesis-gateway.david-pestilli.workers.dev
-          VITE_SITE_NAME: Catechesis
+          VITE_SITE_NAME: Catequético
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
