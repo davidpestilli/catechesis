@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { MessageSquare, Reply, ShieldCheck } from 'lucide-react'
+import { ChevronDown, MessageSquare, Reply, ShieldCheck } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useComments, useCreateComment } from '@/hooks/use-comments'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { commentService } from '@/services/comment-service'
 import type { Comment, CommentContentType } from '@/types/content'
@@ -257,19 +257,24 @@ function CommentThread({
 
 export function CommentSection({ contentType, contentId }: CommentSectionProps) {
   const [page, setPage] = useState(1)
+  const [isOpen, setIsOpen] = useState(false)
   const isAvailable = commentService.isAvailable()
-  const commentsQuery = useComments(contentType, contentId, page)
   const location = useLocation()
+  const threadId = new URLSearchParams(location.search).get('thread')
+  const commentsQuery = useComments(contentType, contentId, page, isOpen || Boolean(threadId))
 
   useEffect(() => {
     setPage(1)
   }, [contentId, contentType])
 
   useEffect(() => {
-    if (!commentsQuery.data) return
+    if (threadId) {
+      setIsOpen(true)
+    }
+  }, [threadId])
 
-    const params = new URLSearchParams(location.search)
-    const threadId = params.get('thread')
+  useEffect(() => {
+    if (!commentsQuery.data) return
 
     if (!threadId) return
 
@@ -280,83 +285,106 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
     window.requestAnimationFrame(() => {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
-  }, [commentsQuery.data, location.search])
+  }, [commentsQuery.data, threadId])
 
   return (
-    <Card className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <MessageSquare className="h-5 w-5" />
-        </div>
-        <div>
-          <CardTitle>Comentarios</CardTitle>
-          <CardDescription className="mt-1">
-            Publique sua mensagem ou responda a uma conversa ja iniciada.
-          </CardDescription>
-        </div>
-      </div>
-
-      {isAvailable ? (
-        <CommentForm contentType={contentType} contentId={contentId} submitLabel="Publicar comentario" />
-      ) : (
-        <div className="rounded-[28px] border border-dashed border-stone-300 bg-stone-50/90 px-5 py-4 text-sm text-stone-600">
-          Comentarios indisponiveis enquanto o Supabase e o Worker nao estiverem configurados.
-        </div>
-      )}
-
-      {commentsQuery.isLoading ? (
-        <div className="text-sm text-stone-600">Carregando comentarios...</div>
-      ) : commentsQuery.error ? (
-        <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Nao foi possivel carregar os comentarios.
-        </div>
-      ) : commentsQuery.data ? (
-        <>
-          <div className="space-y-5">
-            {commentsQuery.data.roots.length > 0 ? (
-              commentsQuery.data.roots.map((root) => (
-                <CommentThread
-                  key={root.id}
-                  contentType={contentType}
-                  contentId={contentId}
-                  root={root}
-                />
-              ))
-            ) : (
-              <div className="rounded-[28px] border border-stone-200 bg-stone-50/80 px-5 py-4 text-sm text-stone-600">
-                Ainda nao ha comentarios nesta pagina.
-              </div>
-            )}
+    <Card className="overflow-hidden p-0">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition hover:bg-stone-50/60 sm:px-6"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <MessageSquare className="h-5 w-5" />
           </div>
+          <div>
+            <CardTitle>Comentarios</CardTitle>
+            <CardDescription className="mt-1">
+              {isOpen
+                ? 'Publique sua mensagem ou responda a uma conversa ja iniciada.'
+                : 'Toque para abrir a area de conversa deste conteudo.'}
+            </CardDescription>
+          </div>
+        </div>
 
-          {commentsQuery.data.total > commentsQuery.data.pageSize ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-2">
-              <p className="text-sm text-stone-600">
-                Pagina {commentsQuery.data.page} de {Math.max(Math.ceil(commentsQuery.data.total / commentsQuery.data.pageSize), 1)}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((current) => Math.max(current - 1, 1))}
-                  disabled={page === 1}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={!commentsQuery.data.hasMore}
-                >
-                  Proxima
-                </Button>
-              </div>
-            </div>
+        <div className="flex shrink-0 items-center gap-3 text-sm text-stone-600">
+          {commentsQuery.data ? (
+            <span className="hidden sm:inline">
+              {commentsQuery.data.total} comentario{commentsQuery.data.total === 1 ? '' : 's'}
+            </span>
           ) : null}
-        </>
+          <span>{isOpen ? 'Fechar' : 'Abrir'}</span>
+          <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen ? 'rotate-180' : 'rotate-0')} />
+        </div>
+      </button>
+
+      {isOpen ? (
+        <div className="space-y-6 border-t border-stone-200/80 p-5 sm:p-6">
+          {isAvailable ? (
+            <CommentForm contentType={contentType} contentId={contentId} submitLabel="Publicar comentario" />
+          ) : (
+            <div className="rounded-[28px] border border-dashed border-stone-300 bg-stone-50/90 px-5 py-4 text-sm text-stone-600">
+              Comentarios indisponiveis enquanto o Supabase e o Worker nao estiverem configurados.
+            </div>
+          )}
+
+          {commentsQuery.isLoading ? (
+            <div className="text-sm text-stone-600">Carregando comentarios...</div>
+          ) : commentsQuery.error ? (
+            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              Nao foi possivel carregar os comentarios.
+            </div>
+          ) : commentsQuery.data ? (
+            <>
+              <div className="space-y-5">
+                {commentsQuery.data.roots.length > 0 ? (
+                  commentsQuery.data.roots.map((root) => (
+                    <CommentThread
+                      key={root.id}
+                      contentType={contentType}
+                      contentId={contentId}
+                      root={root}
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-[28px] border border-stone-200 bg-stone-50/80 px-5 py-4 text-sm text-stone-600">
+                    Ainda nao ha comentarios nesta pagina.
+                  </div>
+                )}
+              </div>
+
+              {commentsQuery.data.total > commentsQuery.data.pageSize ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-2">
+                  <p className="text-sm text-stone-600">
+                    Pagina {commentsQuery.data.page} de {Math.max(Math.ceil(commentsQuery.data.total / commentsQuery.data.pageSize), 1)}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                      disabled={page === 1}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((current) => current + 1)}
+                      disabled={!commentsQuery.data.hasMore}
+                    >
+                      Proxima
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </div>
       ) : null}
     </Card>
   )

@@ -2,11 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { commentService } from '@/services/comment-service'
 import type { CommentContentType, CommentDraft } from '@/types/content'
 
-export function useComments(contentType: CommentContentType, contentId: string, page: number) {
+export function useComments(
+  contentType: CommentContentType,
+  contentId: string,
+  page: number,
+  enabled = true,
+) {
   return useQuery({
     queryKey: ['comments', contentType, contentId, page],
     queryFn: () => commentService.listComments(contentType, contentId, page),
-    enabled: Boolean(contentId),
+    enabled: enabled && Boolean(contentId),
   })
 }
 

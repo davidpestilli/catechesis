@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
@@ -53,9 +54,27 @@ export function EncounterQuizPage() {
       <FloatingBackButton to={`/encontros/${groupSlug}/${encounter.slug}`} label="Voltar ao encontro" />
 
       <div className="space-y-5">
-        <Card>
-          <CardTitle>{quiz.title}</CardTitle>
-          <CardDescription className="mt-2">{quiz.description}</CardDescription>
+        <Card className="overflow-hidden p-0">
+          {encounter.coverImageUrl ? (
+            <img
+              src={encounter.coverImageUrl}
+              alt={encounter.title}
+              className="h-56 w-full object-cover sm:h-64"
+            />
+          ) : null}
+          <div className="space-y-5 p-6 sm:p-8">
+            <div className="flex flex-wrap gap-2">
+              <Badge>{encounter.theme || 'Encontro'}</Badge>
+              {group ? <Badge className="bg-stone-900 text-stone-50">{group.name}</Badge> : null}
+            </div>
+            <div>
+              <h1 className="font-display text-4xl text-stone-900 sm:text-5xl">{quiz.title}</h1>
+              <CardDescription className="mt-3 text-base leading-7 sm:text-lg">{quiz.description}</CardDescription>
+              <p className="mt-4 text-sm uppercase tracking-[0.18em] text-stone-500">
+                {quiz.questions.length} perguntas sobre {encounter.title}
+              </p>
+            </div>
+          </div>
         </Card>
 
         {quiz.questions.map((question, questionIndex) => {

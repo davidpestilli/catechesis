@@ -1,5 +1,4 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import DOMPurify from 'dompurify'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
   BookOpen,
@@ -80,71 +79,7 @@ export function EncounterDetailPage() {
               Abra o resumo, revise o quiz e consulte os materiais extras.
             </CardDescription>
             <div className="mt-5 grid gap-3">
-              {summaryContent ? (
-                <Dialog.Root>
-                  <Dialog.Trigger asChild>
-                    <Button>
-                      <ScrollText className="mr-2 h-4 w-4" />
-                      Resumo do encontro
-                    </Button>
-                  </Dialog.Trigger>
-                  <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 z-50 bg-stone-950/45 backdrop-blur-sm" />
-                    <Dialog.Content className="fixed inset-0 z-50 overflow-y-auto">
-                      <div className="min-h-full px-3 py-4 sm:px-6 sm:py-8">
-                        <div className="mx-auto max-w-4xl">
-                          <div className="mb-3 flex justify-end">
-                            <Dialog.Close asChild>
-                              <Button variant="ghost" className="bg-white/80 text-stone-800 shadow-sm backdrop-blur">
-                                <X className="mr-2 h-4 w-4" />
-                                Fechar
-                              </Button>
-                            </Dialog.Close>
-                          </div>
-
-                          <Card className="overflow-hidden p-0">
-                            {encounter.coverImageUrl ? (
-                              <img
-                                src={encounter.coverImageUrl}
-                                alt={encounter.title}
-                                className="h-60 w-full object-cover sm:h-72"
-                              />
-                            ) : null}
-                            <div className="space-y-5 p-6 sm:p-8">
-                              <div className="flex flex-wrap gap-2">
-                                <Badge>{encounter.theme || 'Encontro'}</Badge>
-                                {group ? <Badge className="bg-stone-900 text-stone-50">{group.name}</Badge> : null}
-                              </div>
-
-                              <div className="flex flex-wrap items-start justify-between gap-4">
-                                <div className="max-w-2xl">
-                                  <Dialog.Title asChild>
-                                    <h2 className="font-display text-4xl text-stone-900 sm:text-5xl">
-                                      {summaryContent.title}
-                                    </h2>
-                                  </Dialog.Title>
-                                  <Dialog.Description asChild>
-                                    <p className="mt-3 text-base leading-7 text-stone-600 sm:text-lg">
-                                      {summaryContent.description || 'Texto de apoio publicado no proprio sistema.'}
-                                    </p>
-                                  </Dialog.Description>
-                                </div>
-                              </div>
-
-                              <div
-                                className="prose-catechesis"
-                                dangerouslySetInnerHTML={{
-                                  __html: DOMPurify.sanitize(summaryContent.html),
-                                }}
-                              />
-                            </div>
-                          </Card>
-                        </div>
-                      </div>
-                    </Dialog.Content>
-                  </Dialog.Portal>
-                </Dialog.Root>
-              ) : firstSummary ? (
+              {summaryContent || firstSummary ? (
                 <Button asChild>
                   <Link to={`/encontros/${groupSlug}/${encounter.slug}/resumo`}>
                     <ScrollText className="mr-2 h-4 w-4" />
