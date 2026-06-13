@@ -70,15 +70,13 @@ function cloneDefaultState() {
   return structuredClone(defaultCMSState)
 }
 
-function buildFallbackState(partial?: Partial<CMSState>): CMSState {
-  const fallback = cloneDefaultState()
-
+function buildRemoteState(partial?: Partial<CMSState>): CMSState {
   return {
-    settings: partial?.settings ?? fallback.settings,
-    groups: partial?.groups?.length ? partial.groups : fallback.groups,
-    encounters: partial?.encounters?.length ? partial.encounters : fallback.encounters,
-    articles: partial?.articles?.length ? partial.articles : fallback.articles,
-    usefulLinks: partial?.usefulLinks?.length ? partial.usefulLinks : fallback.usefulLinks,
+    settings: partial?.settings ?? cloneDefaultState().settings,
+    groups: Array.isArray(partial?.groups) ? partial.groups : [],
+    encounters: Array.isArray(partial?.encounters) ? partial.encounters : [],
+    articles: Array.isArray(partial?.articles) ? partial.articles : [],
+    usefulLinks: Array.isArray(partial?.usefulLinks) ? partial.usefulLinks : [],
     updatedAt: partial?.updatedAt ?? new Date().toISOString(),
   }
 }
@@ -111,18 +109,14 @@ async function mapSupabaseState(): Promise<CMSState> {
       supabase.from('site_settings').select('*').eq('key', 'home').maybeSingle(),
     ])
 
-  if (
-    groupsRes.error ||
-    encountersRes.error ||
-    assetsRes.error ||
-    quizzesRes.error ||
-    questionsRes.error ||
-    optionsRes.error ||
-    articlesRes.error ||
-    usefulLinksRes.error
-  ) {
-    throw new Error('Nao foi possivel carregar o conteudo salvo no Supabase.')
-  }
+  if (groupsRes.error) console.error('Erro ao carregar class_groups:', groupsRes.error.message)
+  if (encountersRes.error) console.error('Erro ao carregar encounters:', encountersRes.error.message)
+  if (assetsRes.error) console.error('Erro ao carregar encounter_assets:', assetsRes.error.message)
+  if (quizzesRes.error) console.error('Erro ao carregar quizzes:', quizzesRes.error.message)
+  if (questionsRes.error) console.error('Erro ao carregar quiz_questions:', questionsRes.error.message)
+  if (optionsRes.error) console.error('Erro ao carregar quiz_options:', optionsRes.error.message)
+  if (articlesRes.error) console.error('Erro ao carregar articles:', articlesRes.error.message)
+  if (usefulLinksRes.error) console.error('Erro ao carregar useful_links:', usefulLinksRes.error.message)
 
   const groups =
     (groupsRes.data ?? []).map((group) => ({
@@ -187,7 +181,7 @@ async function mapSupabaseState(): Promise<CMSState> {
     assetsByEncounter.set(asset.encounter_id, list)
   }
 
-  return buildFallbackState({
+  return buildRemoteState({
     settings: {
       heroVideoUrl: settingsRes.data?.value?.heroVideoUrl ?? defaultCMSState.settings.heroVideoUrl,
       heroPosterUrl:

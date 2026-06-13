@@ -79,15 +79,20 @@ export function DiversosPanel() {
   }
 
   async function handleSaveUsefulLink() {
-    await saveUsefulLink.mutateAsync({
-      ...usefulLinkForm,
-      tags: usefulLinkForm.tags,
-    })
-    setUsefulLinkForm({
-      ...emptyUsefulLink(),
-      order: usefulLinks.length + 1,
-    })
-    toast.success('Link util salvo.')
+    try {
+      await saveUsefulLink.mutateAsync({
+        ...usefulLinkForm,
+        tags: usefulLinkForm.tags,
+      })
+      setUsefulLinkForm({
+        ...emptyUsefulLink(),
+        order: usefulLinks.length + 1,
+      })
+      toast.success('Link util salvo.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o link util.'
+      toast.error(message)
+    }
   }
 
   return (
@@ -323,22 +328,41 @@ export function DiversosPanel() {
                         coverImageUrl: event.target.value,
                       }))
                     }
+                    placeholder="https://..."
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Ordem</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={usefulLinkForm.order}
-                    onChange={(event) =>
-                      setUsefulLinkForm((current) => ({
-                        ...current,
-                        order: Number(event.target.value) || 1,
-                      }))
-                    }
-                  />
+                <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/75 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                    Preview da capa
+                  </p>
+                  {usefulLinkForm.coverImageUrl ? (
+                    <img
+                      src={usefulLinkForm.coverImageUrl}
+                      alt="Preview da capa do link util"
+                      referrerPolicy="no-referrer"
+                      className="mt-3 aspect-[16/9] w-full rounded-[18px] object-cover"
+                    />
+                  ) : (
+                    <div className="mt-3 flex aspect-[16/9] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                      Cole a URL da imagem para revisar a capa do link aqui.
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ordem</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={usefulLinkForm.order}
+                  onChange={(event) =>
+                    setUsefulLinkForm((current) => ({
+                      ...current,
+                      order: Number(event.target.value) || 1,
+                    }))
+                  }
+                />
               </div>
 
               <Button onClick={() => void handleSaveUsefulLink()} disabled={saveUsefulLink.isPending}>
