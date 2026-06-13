@@ -1,10 +1,19 @@
-interface CommentEmailTemplateInput {
+interface CommentNotificationEmailTemplateInput {
   contentLabel: string
   contentTitle: string
   contentUrl: string
   replyAuthorName: string
   replyAuthorKind: 'guest' | 'admin'
   replyBody: string
+  unsubscribeUrl: string
+  siteName: string
+}
+
+interface ThreadSubscriptionEmailTemplateInput {
+  contentLabel: string
+  contentTitle: string
+  contentUrl: string
+  subscriberName: string
   unsubscribeUrl: string
   siteName: string
 }
@@ -25,11 +34,11 @@ function formatParagraphs(value: string) {
     .join('')
 }
 
-export function buildCommentNotificationSubject(input: CommentEmailTemplateInput) {
+export function buildCommentNotificationSubject(input: CommentNotificationEmailTemplateInput) {
   return `Nova resposta em ${input.contentTitle} | ${input.siteName}`
 }
 
-export function buildCommentNotificationHtml(input: CommentEmailTemplateInput) {
+export function buildCommentNotificationHtml(input: CommentNotificationEmailTemplateInput) {
   const senderBadge = input.replyAuthorKind === 'admin' ? 'Equipe administrativa' : 'Participante da conversa'
 
   return `
@@ -84,6 +93,70 @@ export function buildCommentNotificationHtml(input: CommentEmailTemplateInput) {
           <div style="padding:22px 28px;background:#fafaf9;border-top:1px solid #ece7de;text-align:center;">
             <div style="font-size:13px;font-weight:700;color:#44403c;margin-bottom:8px;">${escapeHtml(input.siteName)}</div>
             <div style="font-size:12px;color:#78716c;line-height:1.6;margin-bottom:12px;">Este email foi enviado automaticamente para avisar sobre novas respostas na thread que você acompanha.</div>
+            <a href="${escapeHtml(input.unsubscribeUrl)}" style="font-size:12px;color:#57534e;text-decoration:underline;">Parar de receber emails desta conversa</a>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+export function buildThreadSubscriptionSubject(input: ThreadSubscriptionEmailTemplateInput) {
+  return `Voce esta acompanhando a conversa em ${input.contentTitle} | ${input.siteName}`
+}
+
+export function buildThreadSubscriptionHtml(input: ThreadSubscriptionEmailTemplateInput) {
+  const subscriberName = input.subscriberName.trim() || 'Participante'
+
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${escapeHtml(input.siteName)}</title>
+      </head>
+      <body style="margin:0;padding:32px 16px;background:#f5f1e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1c1917;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 18px 45px rgba(28,25,23,0.12);">
+          <div style="background:linear-gradient(135deg,#315c43 0%,#1f3f2f 100%);padding:32px 28px;text-align:center;">
+            <div style="width:58px;height:58px;margin:0 auto 16px;border-radius:50%;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;font-size:28px;">🔔</div>
+            <div style="color:#f8fafc;font-size:24px;font-weight:700;margin-bottom:8px;">Assinatura confirmada</div>
+            <div style="color:rgba(248,250,252,0.86);font-size:14px;">Voce passara a receber avisos sobre novas respostas nesta thread especifica.</div>
+          </div>
+
+          <div style="padding:28px;">
+            <div style="font-size:16px;color:#334155;line-height:1.75;margin-bottom:20px;">
+              Ola, <strong>${escapeHtml(subscriberName)}</strong>. Sua assinatura foi registrada com sucesso.
+            </div>
+
+            <div style="background:#f7f4ee;border:1px solid #e7dfd1;border-radius:18px;padding:18px 20px;margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;">Conversa acompanhada</div>
+              <div style="font-size:20px;font-weight:700;color:#1f2937;">${escapeHtml(input.contentTitle)}</div>
+              <div style="margin-top:10px;display:inline-block;background:#e6efe9;color:#315c43;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;">
+                ${escapeHtml(input.contentLabel)}
+              </div>
+            </div>
+
+            <div style="border:1px solid #d6e2da;background:#fbfdfc;border-radius:20px;padding:18px 20px;margin-bottom:24px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#315c43;margin-bottom:12px;">O que acontece agora</div>
+              <p style="margin:0 0 12px;color:#334155;line-height:1.75;">Sempre que alguem publicar uma nova resposta nesta thread, enviaremos um aviso para este email.</p>
+              <p style="margin:0;color:#334155;line-height:1.75;">O descadastro continua disponivel em todos os emails enviados para essa conversa.</p>
+            </div>
+
+            <div style="text-align:center;margin-bottom:20px;">
+              <a href="${escapeHtml(input.contentUrl)}" style="display:inline-block;background:#315c43;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:700;font-size:15px;">
+                Abrir conversa no ${escapeHtml(input.siteName)}
+              </a>
+            </div>
+
+            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:14px 16px;font-size:13px;color:#9a3412;line-height:1.6;">
+              Esta assinatura vale apenas para esta thread especifica.
+            </div>
+          </div>
+
+          <div style="padding:22px 28px;background:#fafaf9;border-top:1px solid #ece7de;text-align:center;">
+            <div style="font-size:13px;font-weight:700;color:#44403c;margin-bottom:8px;">${escapeHtml(input.siteName)}</div>
+            <div style="font-size:12px;color:#78716c;line-height:1.6;margin-bottom:12px;">Voce pode parar de receber avisos desta conversa a qualquer momento.</div>
             <a href="${escapeHtml(input.unsubscribeUrl)}" style="font-size:12px;color:#57534e;text-decoration:underline;">Parar de receber emails desta conversa</a>
           </div>
         </div>

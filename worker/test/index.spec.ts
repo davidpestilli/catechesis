@@ -5,6 +5,7 @@ import {
   waitOnExecutionContext,
 } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
+import { buildThreadSubscriptionHtml, buildThreadSubscriptionSubject } from '../src/comment-email'
 import worker from '../src'
 
 describe('catechesis gateway worker', () => {
@@ -52,5 +53,31 @@ describe('catechesis gateway worker', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'Rota nao encontrada.',
     })
+  })
+
+  it('monta o email de confirmacao de assinatura da thread', () => {
+    const subject = buildThreadSubscriptionSubject({
+      contentLabel: 'Artigo',
+      contentTitle: 'Como organizar um encontro catequetico',
+      contentUrl: 'https://catequetico.org/#/artigos/como-organizar-um-encontro-catequetico?thread=abc',
+      subscriberName: 'Maria',
+      unsubscribeUrl: 'https://worker.example/comments/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+    const html = buildThreadSubscriptionHtml({
+      contentLabel: 'Artigo',
+      contentTitle: 'Como organizar um encontro catequetico',
+      contentUrl: 'https://catequetico.org/#/artigos/como-organizar-um-encontro-catequetico?thread=abc',
+      subscriberName: 'Maria',
+      unsubscribeUrl: 'https://worker.example/comments/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+
+    expect(subject).toContain('Voce esta acompanhando a conversa')
+    expect(subject).toContain('Como organizar um encontro catequetico')
+    expect(html).toContain('Assinatura confirmada')
+    expect(html).toContain('Maria')
+    expect(html).toContain('Esta assinatura vale apenas para esta thread especifica.')
+    expect(html).toContain('https://worker.example/comments/unsubscribe?token=abc')
   })
 })

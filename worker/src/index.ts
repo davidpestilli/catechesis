@@ -1,4 +1,9 @@
-import { buildCommentNotificationHtml, buildCommentNotificationSubject } from './comment-email'
+import {
+  buildCommentNotificationHtml,
+  buildCommentNotificationSubject,
+  buildThreadSubscriptionHtml,
+  buildThreadSubscriptionSubject,
+} from './comment-email'
 
 interface GatewayEnv {
   ALLOWED_ORIGINS: string
@@ -537,6 +542,55 @@ async function queueCommentNotificationEmail(
   }
 }
 
+async function queueThreadSubscriptionEmail(
+  env: GatewayEnv,
+  input: {
+    subscription: CommentSubscriptionRow
+    content: ContentContext
+    workerBaseUrl: string
+  },
+) {
+  const fromEmail = env.ZEPTO_MAIL_FROM_EMAIL?.trim() || 'noreply@catequetico.org'
+  const fromName = env.ZEPTO_MAIL_FROM_NAME?.trim() || getSiteName(env)
+  const unsubscribeUrl = `${input.workerBaseUrl}/comments/unsubscribe?token=${encodeURIComponent(input.subscription.unsubscribe_token)}`
+  const subject = buildThreadSubscriptionSubject({
+    contentLabel: input.content.contentLabel,
+    contentTitle: input.content.title,
+    contentUrl: input.content.url,
+    subscriberName: input.subscription.subscriber_name,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+  const bodyHtml = buildThreadSubscriptionHtml({
+    contentLabel: input.content.contentLabel,
+    contentTitle: input.content.title,
+    contentUrl: input.content.url,
+    subscriberName: input.subscription.subscriber_name,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+
+  const { response, data } = await supabaseRpc<ZeptoMailRpcResponse>(env, 'enviar_email_zeptomail', {
+    p_destinatario: input.subscription.email,
+    p_assunto: subject,
+    p_corpo_html: bodyHtml,
+    p_remetente_email: fromEmail,
+    p_remetente_nome: fromName,
+  })
+
+  if (!response.ok || !data?.success) {
+    return {
+      success: false,
+      error: data?.error ?? `RPC retornou status ${response.status}.`,
+    }
+  }
+
+  return {
+    success: true,
+    requestId: data.request_id,
+  }
+}
+
 async function notifyThreadParticipants(env: GatewayEnv, comment: CommentRow, workerBaseUrl: string) {
   const rootCommentId = comment.root_comment_id
   const adminEmail = env.ADMIN_NOTIFICATION_EMAIL?.trim().toLowerCase()
@@ -730,6 +784,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
         },
       },
     ]
+    let createdOptInSubscription: CommentSubscriptionRow | null = null
 
     if (!isAdmin && notifyReplies && authorEmail) {
       const subscription = await ensureSubscription(env, {
@@ -740,6 +795,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
       })
 
       if (subscription.created) {
+        createdOptInSubscription = subscription.subscription
         events.push({
           comment_id: comment.id,
           root_comment_id: rootCommentId,
@@ -754,6 +810,53 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
 
     await insertEvents(env, events)
     const workerBaseUrl = new URL(request.url).origin
+
+    if (createdOptInSubscription) {
+      const content = await getContentContext(env, comment)
+
+      if (!content) {
+        await insertEvents(env, [
+          {
+            comment_id: comment.id,
+            root_comment_id: rootCommentId,
+            event_type: 'email_failed',
+            recipient_email: createdOptInSubscription.email,
+            payload: {
+              kind: 'thread_subscription_confirmation',
+              source: createdOptInSubscription.source,
+              error: 'Nao foi possivel montar o contexto do conteudo para o email de assinatura.',
+            },
+          },
+        ])
+      } else {
+        const result = await queueThreadSubscriptionEmail(env, {
+          subscription: createdOptInSubscription,
+          content,
+          workerBaseUrl,
+        })
+
+        await insertEvents(env, [
+          {
+            comment_id: comment.id,
+            root_comment_id: rootCommentId,
+            recipient_email: createdOptInSubscription.email,
+            event_type: result.success ? 'email_queued' : 'email_failed',
+            payload: result.success
+              ? {
+                  kind: 'thread_subscription_confirmation',
+                  source: createdOptInSubscription.source,
+                  requestId: result.requestId ?? null,
+                }
+              : {
+                  kind: 'thread_subscription_confirmation',
+                  source: createdOptInSubscription.source,
+                  error: result.error,
+                },
+          },
+        ])
+      }
+    }
+
     await notifyThreadParticipants(env, comment, workerBaseUrl)
 
     return json({ ok: true, comment: toPublicComment(comment) }, 201, headers)
