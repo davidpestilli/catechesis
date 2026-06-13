@@ -8,6 +8,7 @@ import { ArticleViewPage } from '@/pages/article-view-page'
 import { ArticlesPage } from '@/pages/articles-page'
 import { EncounterAssetPage } from '@/pages/encounter-asset-page'
 import { EncounterDetailPage } from '@/pages/encounter-detail-page'
+import { EncounterMaterialsPage } from '@/pages/encounter-materials-page'
 import { EncounterQuizPage } from '@/pages/encounter-quiz-page'
 import { EncountersPage } from '@/pages/encounters-page'
 import { GroupDetailPage } from '@/pages/group-detail-page'
@@ -27,6 +28,7 @@ const router = createHashRouter([
       { path: 'encontros/:groupSlug', element: <GroupDetailPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug', element: <EncounterDetailPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug/resumo', element: <EncounterAssetPage /> },
+      { path: 'encontros/:groupSlug/:encounterSlug/materiais', element: <EncounterMaterialsPage /> },
       { path: 'encontros/:groupSlug/:encounterSlug/quiz', element: <EncounterQuizPage /> },
       { path: 'diversos', element: <MiscPage /> },
       { path: 'artigos', element: <ArticlesPage /> },

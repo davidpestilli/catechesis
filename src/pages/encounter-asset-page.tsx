@@ -1,15 +1,12 @@
 import DOMPurify from 'dompurify'
 import { Navigate, useParams } from 'react-router-dom'
-import { Download } from 'lucide-react'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useCMSState } from '@/hooks/use-cms'
 import {
   getEncounterPrimarySummaryAsset,
   getEncounterSummaryContent,
-  getEncounterSummaryDownloadAsset,
 } from '@/lib/encounter-summary'
 
 export function EncounterAssetPage() {
@@ -29,7 +26,6 @@ export function EncounterAssetPage() {
   }
 
   const summaryContent = getEncounterSummaryContent(encounter)
-  const summaryDownloadAsset = getEncounterSummaryDownloadAsset(encounter)
   const asset =
     assetId != null
       ? encounter.assets.find((item) => item.id === assetId)
@@ -44,7 +40,6 @@ export function EncounterAssetPage() {
   const isSummaryPage = assetId == null
   const title = assetId == null ? summaryContent?.title ?? asset?.title ?? 'Resumo do encontro' : asset?.title
   const description = assetId == null ? summaryContent?.description ?? asset?.description ?? '' : asset?.description
-  const downloadAsset = assetId == null ? summaryDownloadAsset : asset?.downloadable ? asset : undefined
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 pb-24">
@@ -81,14 +76,6 @@ export function EncounterAssetPage() {
                 {description || 'Texto de apoio publicado no proprio sistema.'}
               </CardDescription>
             </div>
-            {downloadAsset ? (
-              <Button asChild>
-                <a href={downloadAsset.url} target="_blank" rel="noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar
-                </a>
-              </Button>
-            ) : null}
           </div>
 
           {asset?.view === 'image' ? (
