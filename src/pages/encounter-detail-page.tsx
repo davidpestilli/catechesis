@@ -12,6 +12,7 @@ import {
   ScrollText,
   X,
 } from 'lucide-react'
+import { CommentSection } from '@/components/comments/comment-section'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -245,6 +246,10 @@ export function EncounterDetailPage() {
             </div>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <CommentSection contentType="encounter" contentId={encounter.id} />
       </div>
     </section>
   )

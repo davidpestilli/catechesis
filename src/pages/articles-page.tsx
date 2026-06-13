@@ -1,5 +1,4 @@
 import { ArticleFolderCard } from '@/components/content/article-folder-card'
-import { EditorShortcutCard } from '@/components/content/editor-shortcut-card'
 import { SectionTitle } from '@/components/home/section-title'
 import { useCMSState } from '@/hooks/use-cms'
 import { articleCategoryOptions, getArticleCategoryMeta, getArticleCategoryPath } from '@/lib/diversos'
@@ -34,13 +33,6 @@ export function ArticlesPage() {
             />
           )
         })}
-      </div>
-
-      <div className="mt-6">
-        <EditorShortcutCard
-          title="Editar pastas e artigos"
-          description="Como voce esta logado, pode abrir o painel para criar novos artigos ou reorganizar o conteudo das pastas."
-        />
       </div>
     </section>
   )

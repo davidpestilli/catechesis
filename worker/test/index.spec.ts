@@ -1,54 +1,56 @@
 import {
-	env,
-	createExecutionContext,
-	waitOnExecutionContext,
-	SELF,
-} from "cloudflare:test";
-import { describe, it, expect } from "vitest";
-import worker from "../src";
+  SELF,
+  createExecutionContext,
+  env,
+  waitOnExecutionContext,
+} from 'cloudflare:test'
+import { describe, expect, it } from 'vitest'
+import worker from '../src'
 
-describe("Hello World user worker", () => {
-	describe("request for /message", () => {
-		it('/ responds with "Hello, World!" (unit style)', async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>(
-				"http://example.com/message"
-			);
-			// Create an empty context to pass to `worker.fetch()`.
-			const ctx = createExecutionContext();
-			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
-		});
+describe('catechesis gateway worker', () => {
+  it('responde /health no modo unitario', async () => {
+    const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/health')
+    const ctx = createExecutionContext()
+    const response = await worker.fetch(request, env, ctx)
 
-		it('responds with "Hello, World!" (integration style)', async () => {
-			const request = new Request("http://example.com/message");
-			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
-		});
-	});
+    await waitOnExecutionContext(ctx)
 
-	describe("request for /random", () => {
-		it("/ responds with a random UUID (unit style)", async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>(
-				"http://example.com/random"
-			);
-			// Create an empty context to pass to `worker.fetch()`.
-			const ctx = createExecutionContext();
-			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatch(
-				/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/
-			);
-		});
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      service: 'catechesis-gateway',
+    })
+  })
 
-		it("responds with a random UUID (integration style)", async () => {
-			const request = new Request("http://example.com/random");
-			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatch(
-				/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/
-			);
-		});
-	});
-});
+  it('responde /config no modo integracao', async () => {
+    const response = await SELF.fetch('http://example.com/config')
+    const payload = (await response.json()) as {
+      ok: boolean
+      site: string
+      storageBucket: string
+      note: string
+    }
+
+    expect(response.status).toBe(200)
+    expect(payload.ok).toBe(true)
+    expect(payload.site).toBe('Catechesis')
+    expect(payload.storageBucket).toBe(env.SUPABASE_STORAGE_BUCKET)
+  })
+
+  it('rejeita token invalido de descadastro', async () => {
+    const response = await SELF.fetch('http://example.com/comments/unsubscribe?token=invalido')
+    const body = await response.text()
+
+    expect(response.status).toBe(400)
+    expect(body).toContain('Link invalido')
+  })
+
+  it('mantem 404 para rotas desconhecidas', async () => {
+    const response = await SELF.fetch('http://example.com/rota-inexistente')
+
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Rota nao encontrada.',
+    })
+  })
+})

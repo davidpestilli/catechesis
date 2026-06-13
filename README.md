@@ -29,7 +29,7 @@ Projeto base para um site de apoio ao ensino de catequese com:
 - Frontend:
   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_CLOUDFLARE_WORKER_URL`, `VITE_SITE_NAME`
 - Worker:
-  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY`
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_NOTIFICATION_EMAIL`
 
 ## Login administrativo de teste
 
@@ -40,3 +40,4 @@ Enquanto o fluxo definitivo de usuarios nao e refinado, o projeto esta preparado
 - O `service_role` deve ficar apenas no Worker e/ou em ambiente servidor.
 - A `anon key` do Supabase e, por padrao, uma credencial publica de cliente. O projeto ja deixa o Worker preparado para proxiar media e downloads sem expor a `service_role`.
 - O GitHub Pages faz apenas o deploy estatico do frontend. O Worker deve ser publicado separadamente no Cloudflare e a URL dele precisa entrar em `VITE_CLOUDFLARE_WORKER_URL`.
+- Os comentarios publicos usam leitura direta do Supabase e escrita via Worker para concentrar regras de assinatura, eventos e notificacoes futuras.

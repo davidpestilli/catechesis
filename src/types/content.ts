@@ -3,6 +3,8 @@ export type AssetView = 'image' | 'pdf' | 'html' | 'video' | 'link'
 export type MaterialCategory = 'video' | 'image' | 'text' | 'website' | 'book'
 export type LandingImageMotion = 'drift-a' | 'drift-b' | 'drift-c'
 export type ArticleCategory = 'general' | 'saints-life'
+export type CommentContentType = 'article' | 'encounter'
+export type CommentAuthorKind = 'guest' | 'admin'
 
 export interface EncounterAsset {
   id: string
@@ -113,4 +115,39 @@ export interface EditorUser {
   email: string
   name: string
   mode: 'demo' | 'supabase'
+}
+
+export interface Comment {
+  id: string
+  contentType: CommentContentType
+  contentId: string
+  parentCommentId?: string
+  rootCommentId: string
+  authorKind: CommentAuthorKind
+  adminUserId?: string
+  authorName: string
+  authorEmail?: string
+  body: string
+  notifyReplies: boolean
+  createdAt: string
+  updatedAt: string
+  replies: Comment[]
+}
+
+export interface CommentPage {
+  roots: Comment[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
+export interface CommentDraft {
+  contentType: CommentContentType
+  contentId: string
+  parentCommentId?: string
+  authorName: string
+  authorEmail?: string
+  body: string
+  notifyReplies: boolean
 }

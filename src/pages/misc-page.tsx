@@ -1,6 +1,5 @@
 import { ExternalLink, ScrollText } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { EditorShortcutCard } from '@/components/content/editor-shortcut-card'
 import { SectionTitle } from '@/components/home/section-title'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 
@@ -40,13 +39,6 @@ export function MiscPage() {
             </Card>
           </Link>
         ))}
-      </div>
-
-      <div className="mt-6">
-        <EditorShortcutCard
-          title="Editar a area Diversos"
-          description="O painel administrativo concentra a manutencao dos artigos e dos links uteis exibidos nesta pagina."
-        />
       </div>
     </section>
   )

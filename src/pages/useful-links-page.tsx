@@ -1,4 +1,3 @@
-import { EditorShortcutCard } from '@/components/content/editor-shortcut-card'
 import { UsefulLinkCard } from '@/components/content/useful-link-card'
 import { SectionTitle } from '@/components/home/section-title'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
@@ -34,13 +33,6 @@ export function UsefulLinksPage() {
           Nenhum link util foi publicado ainda.
         </div>
       ) : null}
-
-      <div className="mt-6">
-        <EditorShortcutCard
-          title="Editar Links Uteis"
-          description="Como voce esta logado, pode abrir o painel para cadastrar, revisar ou reorganizar os links desta area."
-        />
-      </div>
     </section>
   )
 }

@@ -15,7 +15,8 @@
     "required": [
       "VITE_SUPABASE_URL",
       "VITE_SUPABASE_ANON_KEY",
-      "VITE_SUPABASE_SERVICE_ROLE_KEY"
+      "VITE_SUPABASE_SERVICE_ROLE_KEY",
+      "ADMIN_NOTIFICATION_EMAIL"
     ]
   }
 }

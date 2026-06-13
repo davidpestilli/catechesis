@@ -1,6 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom'
 import { ArticleCard } from '@/components/content/article-card'
-import { EditorShortcutCard } from '@/components/content/editor-shortcut-card'
 import { SectionTitle } from '@/components/home/section-title'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { useCMSState } from '@/hooks/use-cms'
@@ -53,13 +52,6 @@ export function ArticleCategoryPage() {
           Nenhum artigo foi publicado nesta pasta ainda.
         </div>
       ) : null}
-
-      <div className="mt-6">
-        <EditorShortcutCard
-          title={`Editar a pasta ${meta.label}`}
-          description="O painel permite criar novos artigos nesta pasta e ajustar os existentes."
-        />
-      </div>
     </section>
   )
 }

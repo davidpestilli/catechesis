@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { Navigate, useParams } from 'react-router-dom'
-import { EditorShortcutCard } from '@/components/content/editor-shortcut-card'
+import { CommentSection } from '@/components/comments/comment-section'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -52,11 +52,8 @@ export function ArticleViewPage() {
         </div>
       </Card>
 
-      <div className="mt-6">
-        <EditorShortcutCard
-          title="Editar este artigo"
-          description="Com a sessao autenticada, voce pode voltar ao painel e atualizar este conteudo sempre que precisar."
-        />
+      <div className="mt-8">
+        <CommentSection contentType="article" contentId={article.id} />
       </div>
     </section>
   )
