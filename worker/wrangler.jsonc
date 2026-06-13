@@ -8,8 +8,12 @@
     "enabled": true
   },
   "vars": {
-    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,https://davidpestilli.github.io",
-    "SUPABASE_STORAGE_BUCKET": "catechesis-media"
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,https://davidpestilli.github.io,https://catequetico.org,https://www.catequetico.org",
+    "SUPABASE_STORAGE_BUCKET": "catechesis-media",
+    "APP_BASE_URL": "https://catequetico.org",
+    "SITE_NAME": "Catequético",
+    "ZEPTO_MAIL_FROM_EMAIL": "noreply@catequetico.org",
+    "ZEPTO_MAIL_FROM_NAME": "Catequético"
   },
   "secrets": {
     "required": [

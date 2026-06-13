@@ -1,3 +1,5 @@
+import { buildCommentNotificationHtml, buildCommentNotificationSubject } from './comment-email'
+
 interface GatewayEnv {
   ALLOWED_ORIGINS: string
   SUPABASE_STORAGE_BUCKET: string
@@ -5,6 +7,10 @@ interface GatewayEnv {
   VITE_SUPABASE_ANON_KEY: string
   VITE_SUPABASE_SERVICE_ROLE_KEY: string
   ADMIN_NOTIFICATION_EMAIL?: string
+  APP_BASE_URL?: string
+  SITE_NAME?: string
+  ZEPTO_MAIL_FROM_EMAIL?: string
+  ZEPTO_MAIL_FROM_NAME?: string
 }
 
 type CommentContentType = 'article' | 'encounter'
@@ -30,6 +36,22 @@ interface CommentRow {
   notify_replies: boolean
   created_at: string
   updated_at: string
+}
+
+function toPublicComment(comment: CommentRow) {
+  return {
+    id: comment.id,
+    content_type: comment.content_type,
+    content_id: comment.content_id,
+    parent_comment_id: comment.parent_comment_id,
+    root_comment_id: comment.root_comment_id,
+    author_kind: comment.author_kind,
+    author_name: comment.author_name,
+    body: comment.body,
+    notify_replies: comment.notify_replies,
+    created_at: comment.created_at,
+    updated_at: comment.updated_at,
+  }
 }
 
 interface CommentSubscriptionRow {
@@ -65,6 +87,40 @@ interface CommentRequestBody {
   authorEmail?: string
   body?: string
   notifyReplies?: boolean
+}
+
+interface ContentContext {
+  contentLabel: string
+  title: string
+  url: string
+}
+
+interface ArticleRow {
+  id: string
+  slug: string
+  title: string
+}
+
+interface EncounterRow {
+  id: string
+  slug: string
+  title: string
+  class_group_id: string
+}
+
+interface ClassGroupRow {
+  id: string
+  slug: string
+  name: string
+}
+
+interface ZeptoMailRpcResponse {
+  success: boolean
+  message?: string
+  request_id?: number
+  destinatario?: string
+  error?: string
+  sqlstate?: string
 }
 
 function corsHeaders(origin: string | null, env: GatewayEnv) {
@@ -112,7 +168,23 @@ function isValidEmail(value: string) {
 }
 
 function isUuid(value?: string | null): value is string {
-  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  )
+}
+
+function normalizeBaseUrl(value?: string | null) {
+  return (value?.trim() || '').replace(/\/+$/, '')
+}
+
+function getSiteName(env: GatewayEnv) {
+  return env.SITE_NAME?.trim() || 'Catequético'
+}
+
+function buildAppThreadUrl(baseUrl: string, route: string, threadId: string) {
+  const normalizedRoute = route.startsWith('/') ? route : `/${route}`
+  return `${baseUrl}/#${normalizedRoute}?thread=${encodeURIComponent(threadId)}`
 }
 
 async function parseJson<T>(request: Request) {
@@ -153,6 +225,18 @@ async function supabaseRest<T>(
   }
 
   return { response, data }
+}
+
+async function supabaseRpc<T>(env: GatewayEnv, rpcName: string, payload: Record<string, unknown>) {
+  return supabaseRest<T>(
+    env,
+    `/rpc/${rpcName}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    { serviceRole: true },
+  )
 }
 
 async function getAuthenticatedUser(request: Request, env: GatewayEnv): Promise<AuthUser | null> {
@@ -248,7 +332,11 @@ async function ensureSubscription(
   if (Array.isArray(data) && data.length > 0) {
     const existing = data[0]
 
-    if (!existing.unsubscribed_at && existing.subscriber_name === input.subscriberName && existing.source === input.source) {
+    if (
+      !existing.unsubscribed_at &&
+      existing.subscriber_name === input.subscriberName &&
+      existing.source === input.source
+    ) {
       return { subscription: existing, created: false }
     }
 
@@ -334,7 +422,122 @@ async function insertEvents(env: GatewayEnv, events: CommentEventInsert[]) {
   )
 }
 
-async function notifyThreadParticipants(env: GatewayEnv, comment: CommentRow) {
+async function getContentContext(env: GatewayEnv, comment: CommentRow): Promise<ContentContext | null> {
+  const baseUrl = normalizeBaseUrl(env.APP_BASE_URL)
+
+  if (!baseUrl) {
+    return null
+  }
+
+  if (comment.content_type === 'article') {
+    const { response, data } = await supabaseRest<ArticleRow[]>(
+      env,
+      `/articles?select=id,slug,title&id=eq.${comment.content_id}&limit=1`,
+      { method: 'GET' },
+    )
+
+    if (!response.ok || !Array.isArray(data) || data.length === 0) {
+      return null
+    }
+
+    const article = data[0]
+
+    return {
+      contentLabel: 'Artigo',
+      title: article.title,
+      url: buildAppThreadUrl(baseUrl, `/artigos/${encodeURIComponent(article.slug)}`, comment.root_comment_id),
+    }
+  }
+
+  const { response: encounterResponse, data: encounterData } = await supabaseRest<EncounterRow[]>(
+    env,
+    `/encounters?select=id,slug,title,class_group_id&id=eq.${comment.content_id}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!encounterResponse.ok || !Array.isArray(encounterData) || encounterData.length === 0) {
+    return null
+  }
+
+  const encounter = encounterData[0]
+  const { response: groupResponse, data: groupData } = await supabaseRest<ClassGroupRow[]>(
+    env,
+    `/class_groups?select=id,slug,name&id=eq.${encounter.class_group_id}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!groupResponse.ok || !Array.isArray(groupData) || groupData.length === 0) {
+    return null
+  }
+
+  const group = groupData[0]
+
+  return {
+    contentLabel: 'Encontro',
+    title: encounter.title,
+    url: buildAppThreadUrl(
+      baseUrl,
+      `/encontros/${encodeURIComponent(group.slug)}/${encodeURIComponent(encounter.slug)}`,
+      comment.root_comment_id,
+    ),
+  }
+}
+
+async function queueCommentNotificationEmail(
+  env: GatewayEnv,
+  input: {
+    recipient: CommentSubscriptionRow
+    comment: CommentRow
+    content: ContentContext
+    workerBaseUrl: string
+  },
+) {
+  const fromEmail = env.ZEPTO_MAIL_FROM_EMAIL?.trim() || 'noreply@catequetico.org'
+  const fromName = env.ZEPTO_MAIL_FROM_NAME?.trim() || getSiteName(env)
+  const unsubscribeUrl = `${input.workerBaseUrl}/comments/unsubscribe?token=${encodeURIComponent(input.recipient.unsubscribe_token)}`
+  const subject = buildCommentNotificationSubject({
+    contentLabel: input.content.contentLabel,
+    contentTitle: input.content.title,
+    contentUrl: input.content.url,
+    replyAuthorName: input.comment.author_name,
+    replyAuthorKind: input.comment.author_kind,
+    replyBody: input.comment.body,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+  const bodyHtml = buildCommentNotificationHtml({
+    contentLabel: input.content.contentLabel,
+    contentTitle: input.content.title,
+    contentUrl: input.content.url,
+    replyAuthorName: input.comment.author_name,
+    replyAuthorKind: input.comment.author_kind,
+    replyBody: input.comment.body,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+
+  const { response, data } = await supabaseRpc<ZeptoMailRpcResponse>(env, 'enviar_email_zeptomail', {
+    p_destinatario: input.recipient.email,
+    p_assunto: subject,
+    p_corpo_html: bodyHtml,
+    p_remetente_email: fromEmail,
+    p_remetente_nome: fromName,
+  })
+
+  if (!response.ok || !data?.success) {
+    return {
+      success: false,
+      error: data?.error ?? `RPC retornou status ${response.status}.`,
+    }
+  }
+
+  return {
+    success: true,
+    requestId: data.request_id,
+  }
+}
+
+async function notifyThreadParticipants(env: GatewayEnv, comment: CommentRow, workerBaseUrl: string) {
   const rootCommentId = comment.root_comment_id
   const adminEmail = env.ADMIN_NOTIFICATION_EMAIL?.trim().toLowerCase()
   const events: CommentEventInsert[] = []
@@ -381,17 +584,52 @@ async function notifyThreadParticipants(env: GatewayEnv, comment: CommentRow) {
     }
   }
 
+  if (recipients.size === 0) {
+    await insertEvents(env, events)
+    return
+  }
+
+  const content = await getContentContext(env, comment)
+
+  if (!content) {
+    for (const subscription of recipients.values()) {
+      events.push({
+        comment_id: comment.id,
+        root_comment_id: rootCommentId,
+        event_type: 'email_failed',
+        recipient_email: subscription.email,
+        payload: {
+          reason: 'Nao foi possivel montar o contexto do conteudo para o email.',
+        },
+      })
+    }
+
+    await insertEvents(env, events)
+    return
+  }
+
   for (const subscription of recipients.values()) {
+    const result = await queueCommentNotificationEmail(env, {
+      recipient: subscription,
+      comment,
+      content,
+      workerBaseUrl,
+    })
+
     events.push({
       comment_id: comment.id,
       root_comment_id: rootCommentId,
-      event_type: 'email_deferred',
       recipient_email: subscription.email,
-      payload: {
-        reason: 'zeptomail_not_configured_in_this_project_yet',
-        source: subscription.source,
-        unsubscribeToken: subscription.unsubscribe_token,
-      },
+      event_type: result.success ? 'email_queued' : 'email_failed',
+      payload: result.success
+        ? {
+            requestId: result.requestId ?? null,
+            source: subscription.source,
+          }
+        : {
+            source: subscription.source,
+            error: result.error,
+          },
     })
   }
 
@@ -515,9 +753,10 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
     }
 
     await insertEvents(env, events)
-    await notifyThreadParticipants(env, comment)
+    const workerBaseUrl = new URL(request.url).origin
+    await notifyThreadParticipants(env, comment, workerBaseUrl)
 
-    return json({ ok: true, comment }, 201, headers)
+    return json({ ok: true, comment: toPublicComment(comment) }, 201, headers)
   } catch (error) {
     return json(
       {
@@ -606,7 +845,7 @@ export default {
       return json(
         {
           ok: true,
-          site: 'Catequético',
+          site: getSiteName(runtimeEnv),
           storageBucket: runtimeEnv.SUPABASE_STORAGE_BUCKET,
           note: 'A service_role permanece no Worker. A anon key nao e devolvida por este endpoint.',
         },
@@ -649,6 +888,7 @@ export default {
 
     if (url.pathname === '/signed-download' && request.method === 'GET') {
       const path = url.searchParams.get('path')
+
       if (!path) {
         return json({ error: 'Informe ?path=...' }, 400, headers)
       }

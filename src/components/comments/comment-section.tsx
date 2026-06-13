@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { MessageSquare, Reply, ShieldCheck } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useComments, useCreateComment } from '@/hooks/use-comments'
 import { formatDate } from '@/lib/utils'
@@ -258,10 +259,28 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
   const [page, setPage] = useState(1)
   const isAvailable = commentService.isAvailable()
   const commentsQuery = useComments(contentType, contentId, page)
+  const location = useLocation()
 
   useEffect(() => {
     setPage(1)
   }, [contentId, contentType])
+
+  useEffect(() => {
+    if (!commentsQuery.data) return
+
+    const params = new URLSearchParams(location.search)
+    const threadId = params.get('thread')
+
+    if (!threadId) return
+
+    const element = document.getElementById(`comment-${threadId}`)
+
+    if (!element) return
+
+    window.requestAnimationFrame(() => {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [commentsQuery.data, location.search])
 
   return (
     <Card className="space-y-6">

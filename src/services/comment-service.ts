@@ -11,11 +11,11 @@ interface CommentRow {
   parent_comment_id: string | null
   root_comment_id: string
   author_kind: 'guest' | 'admin'
-  admin_user_id: string | null
+  admin_user_id?: string | null
   author_name: string
-  author_email: string | null
+  author_email?: string | null
   body: string
-  notify_replies: boolean
+  notify_replies?: boolean
   created_at: string
   updated_at: string
 }
@@ -32,7 +32,7 @@ function mapComment(row: CommentRow, replies: Comment[] = []): Comment {
     authorName: row.author_name,
     authorEmail: row.author_email ?? undefined,
     body: row.body,
-    notifyReplies: row.notify_replies,
+    notifyReplies: row.notify_replies ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     replies,
@@ -66,7 +66,7 @@ export const commentService = {
     const to = from + COMMENTS_PAGE_SIZE - 1
 
     const rootsResponse = await supabase
-      .from('comments')
+      .from('comments_public')
       .select('*', { count: 'exact' })
       .eq('content_type', contentType)
       .eq('content_id', contentId)
@@ -84,7 +84,7 @@ export const commentService = {
     const repliesResponse =
       rootIds.length > 0
         ? await supabase
-            .from('comments')
+            .from('comments_public')
             .select('*')
             .in('root_comment_id', rootIds)
             .not('parent_comment_id', 'is', null)
