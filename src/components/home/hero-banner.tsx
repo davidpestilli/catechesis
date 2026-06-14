@@ -63,10 +63,7 @@ export function HeroBanner({ settings }: HeroBannerProps) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(235,213,151,0.16),transparent_28%),radial-gradient(circle_at_82%_72%,rgba(255,244,214,0.10),transparent_24%)]" />
         <div className="relative z-10 mx-auto flex min-h-[78svh] max-w-6xl flex-col justify-center px-4 py-20 text-stone-50 sm:px-6 sm:py-24">
           <div className="max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-100/90">
-              Plataforma de catequese
-            </p>
-            <h1 className="mt-5 max-w-4xl font-display text-5xl leading-[1.02] text-stone-50 sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-4xl font-display text-5xl leading-[1.02] text-stone-50 sm:text-6xl lg:text-7xl">
               Turmas, encontros e materiais em um so lugar
             </h1>
           </div>
