@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,8 @@ function emptyArticle(): Article {
     category: 'general',
     tags: [],
     coverImageUrl: '',
+    cardImageUrl: '',
+    sources: [],
     featured: false,
     publishedAt: new Date().toISOString(),
   }
@@ -68,11 +71,45 @@ export function DiversosPanel() {
     return <div className="px-4 py-16 text-stone-700">Carregando conteudos diversos...</div>
   }
 
+  const articleSources = articleForm.sources.length > 0 ? articleForm.sources : ['']
+
+  function hydrateArticleForm(article: Article): Article {
+    return {
+      ...article,
+      coverImageUrl: article.coverImageUrl ?? '',
+      cardImageUrl: article.cardImageUrl ?? article.coverImageUrl ?? '',
+      sources: Array.isArray(article.sources) ? article.sources : [],
+    }
+  }
+
+  function updateArticleSource(index: number, value: string) {
+    setArticleForm((current) => {
+      const nextSources = current.sources.length > 0 ? [...current.sources] : ['']
+      nextSources[index] = value
+      return { ...current, sources: nextSources }
+    })
+  }
+
+  function addArticleSource() {
+    setArticleForm((current) => ({
+      ...current,
+      sources: current.sources.length > 0 ? [...current.sources, ''] : ['', ''],
+    }))
+  }
+
+  function removeArticleSource(index: number) {
+    setArticleForm((current) => ({
+      ...current,
+      sources: current.sources.filter((_, sourceIndex) => sourceIndex !== index),
+    }))
+  }
+
   async function handleSaveArticle() {
     await saveArticle.mutateAsync({
       ...articleForm,
       slug: slugify(articleForm.slug || articleForm.title),
       tags: articleForm.tags,
+      sources: articleForm.sources.map((source) => source.trim()).filter(Boolean),
     })
     setArticleForm(emptyArticle())
     toast.success('Artigo salvo.')
@@ -117,7 +154,7 @@ export function DiversosPanel() {
                   <button
                     key={article.id}
                     type="button"
-                    onClick={() => setArticleForm(article)}
+                    onClick={() => setArticleForm(hydrateArticleForm(article))}
                     className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left"
                   >
                     <p className="font-semibold text-stone-900">{article.title}</p>
@@ -186,7 +223,62 @@ export function DiversosPanel() {
                     onChange={(event) =>
                       setArticleForm((current) => ({ ...current, coverImageUrl: event.target.value }))
                     }
+                    placeholder="https://..."
                   />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Imagem do card</Label>
+                  <Input
+                    value={articleForm.cardImageUrl ?? ''}
+                    onChange={(event) =>
+                      setArticleForm((current) => ({ ...current, cardImageUrl: event.target.value }))
+                    }
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/75 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                    Imagens do artigo
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        Capa do artigo
+                      </p>
+                      {articleForm.coverImageUrl ? (
+                        <img
+                          src={articleForm.coverImageUrl}
+                          alt="Preview da capa do artigo"
+                          referrerPolicy="no-referrer"
+                          className="mt-2 aspect-[16/9] w-full rounded-[18px] object-cover"
+                        />
+                      ) : (
+                        <div className="mt-2 flex aspect-[16/9] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                          A capa aparece na abertura do artigo.
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        Card do artigo
+                      </p>
+                      {articleForm.cardImageUrl ? (
+                        <img
+                          src={articleForm.cardImageUrl}
+                          alt="Preview do card do artigo"
+                          referrerPolicy="no-referrer"
+                          className="mt-2 aspect-[16/9] w-full rounded-[18px] object-cover"
+                        />
+                      ) : (
+                        <div className="mt-2 flex aspect-[16/9] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
+                          Esta imagem aparece nos cards de selecao dos artigos.
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -225,6 +317,43 @@ export function DiversosPanel() {
                     setArticleForm((current) => ({ ...current, contentHtml }))
                   }
                 />
+              </div>
+
+              <div className="space-y-3 rounded-[22px] border border-stone-200/80 bg-stone-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <Label>Fontes</Label>
+                    <p className="mt-1 text-sm text-stone-600">
+                      As fontes informadas aqui serao exibidas ao final do artigo.
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addArticleSource}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar fonte
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {articleSources.map((source, index) => (
+                    <div key={`source-${index}`} className="flex flex-col gap-3 md:flex-row">
+                      <Input
+                        value={source}
+                        onChange={(event) => updateArticleSource(index, event.target.value)}
+                        placeholder="URL, livro, documento, autor..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArticleSource(index)}
+                        disabled={articleSources.length === 1 && !source}
+                        className="shrink-0"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <Button onClick={() => void handleSaveArticle()} disabled={saveArticle.isPending}>

@@ -292,6 +292,9 @@ export const defaultCMSState: CMSState = {
       tags: ['metodologia', 'planejamento', 'catequese'],
       coverImageUrl:
         'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
+      cardImageUrl:
+        'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
+      sources: ['Diretorio Nacional de Catequese', 'https://www.vatican.va'],
       contentHtml:
         '<h2>Antes do encontro</h2><p>Planeje o objetivo, a passagem biblica central e o gesto concreto que ajudara a turma a guardar a experiencia.</p><h2>Durante o encontro</h2><p>Varie os ritmos entre escuta, conversa, silencio e celebracao.</p><blockquote>A catequese floresce quando o conteudo encontra a vida.</blockquote>',
     },
@@ -307,6 +310,9 @@ export const defaultCMSState: CMSState = {
       tags: ['santos', 'testemunho', 'espiritualidade'],
       coverImageUrl:
         'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+      cardImageUrl:
+        'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+      sources: ['https://www.vatican.va'],
       contentHtml:
         '<h2>Um coracao livre</h2><p>Sao Francisco descobriu no Evangelho um caminho de liberdade, pobreza e fraternidade.</p><h2>Para a catequese</h2><p>Sua vida ajuda a aproximar os catequizandos da alegria simples de seguir Jesus com inteireza.</p>',
     },

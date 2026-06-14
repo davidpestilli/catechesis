@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
   Bold,
   Eraser,
   ImagePlus,
@@ -22,6 +26,8 @@ interface RichTextEditorProps {
   className?: string
 }
 
+type TextAlignment = 'left' | 'center' | 'right' | 'justify'
+
 interface ToolbarState {
   isBold: boolean
   isItalic: boolean
@@ -34,6 +40,7 @@ interface ToolbarState {
   currentFont: string
   currentHeading: string
   currentColor: string
+  currentAlignment: TextAlignment
 }
 
 const fonts = [
@@ -64,6 +71,7 @@ const defaultToolbarState: ToolbarState = {
   currentFont: fonts[0]?.value ?? 'inherit',
   currentHeading: 'p',
   currentColor: fallbackTextColor,
+  currentAlignment: 'justify',
 }
 
 function getElementFromNode(node: Node | null) {
@@ -130,6 +138,15 @@ function matchFontValue(fontFamily: string) {
       return fontTokens.some((token) => normalizedFont.includes(token))
     })?.value ?? fonts[0]?.value ?? 'inherit'
   )
+}
+
+function normalizeTextAlignment(value: string | null | undefined): TextAlignment {
+  const normalizedValue = value?.trim().toLowerCase() ?? ''
+
+  if (normalizedValue === 'center') return 'center'
+  if (normalizedValue === 'right' || normalizedValue === 'end') return 'right'
+  if (normalizedValue === 'justify') return 'justify'
+  return 'left'
 }
 
 export function RichTextEditor({
@@ -219,7 +236,7 @@ export function RichTextEditor({
 
     const editor = editorRef.current
     const anchorElement = getElementFromNode(selection.anchorNode)
-    const blockElement = findClosestWithinEditor(anchorElement, editor, 'h1, h2, h3, p')
+    const blockElement = findClosestWithinEditor(anchorElement, editor, 'h1, h2, h3, p, ul, ol, blockquote, div')
     const closestLink = findClosestWithinEditor(anchorElement, editor, 'a')
     const closestBlockquote = findClosestWithinEditor(anchorElement, editor, 'blockquote')
     const closestBulletList = findClosestWithinEditor(anchorElement, editor, 'ul')
@@ -251,6 +268,12 @@ export function RichTextEditor({
           ? window.getComputedStyle(anchorElement).fontFamily
           : fonts[0]?.value
 
+    const blockTextAlign = window.getComputedStyle(blockElement ?? editor).textAlign
+    const effectiveAlignment = normalizeTextAlignment(
+      blockTextAlign === 'start' ? window.getComputedStyle(editor).textAlign : blockTextAlign,
+    )
+    const currentHeading = normalizeTagName(blockElement?.tagName ?? 'p')
+
     setToolbarState({
       isBold: document.queryCommandState('bold'),
       isItalic: document.queryCommandState('italic'),
@@ -261,8 +284,9 @@ export function RichTextEditor({
       isBlockquote: !!closestBlockquote,
       hasCustomColor: explicitColor !== null && explicitColor !== getDefaultTextColor(),
       currentFont: matchFontValue(effectiveFont ?? ''),
-      currentHeading: normalizeTagName(blockElement?.tagName ?? 'p'),
+      currentHeading: headings.some((heading) => heading.value === currentHeading) ? currentHeading : 'p',
       currentColor: effectiveColor,
+      currentAlignment: effectiveAlignment,
     })
   }
 
@@ -303,8 +327,8 @@ export function RichTextEditor({
 
     const markup =
       tag === 'image'
-        ? `<img alt="" class="my-4 h-auto max-w-full rounded-[24px]" src="${dataUrl}" />`
-        : `<video controls class="my-4 w-full rounded-[24px]" src="${dataUrl}"></video>`
+        ? `<img alt="" class="my-4 mx-auto h-auto max-w-full rounded-[24px]" src="${dataUrl}" />`
+        : `<video controls class="my-4 mx-auto w-full rounded-[24px]" src="${dataUrl}"></video>`
 
     document.execCommand('insertHTML', false, markup)
     emitChange()
@@ -363,6 +387,30 @@ export function RichTextEditor({
           const url = window.prompt('Informe a URL do link:', currentLink)
           if (url) exec('createLink', url)
         },
+      },
+      {
+        icon: AlignLeft,
+        label: 'Alinhar a esquerda',
+        active: toolbarState.currentAlignment === 'left',
+        action: () => exec('justifyLeft'),
+      },
+      {
+        icon: AlignCenter,
+        label: 'Centralizar',
+        active: toolbarState.currentAlignment === 'center',
+        action: () => exec('justifyCenter'),
+      },
+      {
+        icon: AlignRight,
+        label: 'Alinhar a direita',
+        active: toolbarState.currentAlignment === 'right',
+        action: () => exec('justifyRight'),
+      },
+      {
+        icon: AlignJustify,
+        label: 'Justificar',
+        active: toolbarState.currentAlignment === 'justify',
+        action: () => exec('justifyFull'),
       },
       { icon: ImagePlus, label: 'Imagem', active: false, action: () => imageInputRef.current?.click() },
       { icon: Video, label: 'Video', active: false, action: () => videoInputRef.current?.click() },

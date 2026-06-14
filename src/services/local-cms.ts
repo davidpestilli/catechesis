@@ -58,6 +58,14 @@ function sanitizeLandingImages(value: unknown) {
     .filter((image): image is LandingSlide => image !== null)
 }
 
+function sanitizeArticleSources(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((source) => (typeof source === 'string' ? source.trim() : ''))
+    .filter(Boolean)
+}
+
 function buildLegacyGroups(encounters: Encounter[]) {
   const groupsByLabel = new Map<string, ClassGroup>()
 
@@ -121,6 +129,8 @@ function sanitizeCMSState(state: CMSState): CMSState {
     articles: normalizedState.articles.map((article) => ({
       ...article,
       category: normalizeArticleCategory(article.category),
+      cardImageUrl: article.cardImageUrl ?? article.coverImageUrl ?? undefined,
+      sources: sanitizeArticleSources(article.sources),
     })),
     usefulLinks: Array.isArray(normalizedState.usefulLinks)
       ? normalizedState.usefulLinks
@@ -240,6 +250,8 @@ export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'titl
     tags: input.tags ?? [],
     featured: input.featured ?? false,
     coverImageUrl: input.coverImageUrl,
+    cardImageUrl: input.cardImageUrl ?? input.coverImageUrl,
+    sources: sanitizeArticleSources(input.sources),
     publishedAt: input.publishedAt ?? new Date().toISOString(),
   }
 

@@ -8,6 +8,15 @@ import { useCMSState } from '@/hooks/use-cms'
 import { getArticleCategoryMeta, getArticleCategoryPath } from '@/lib/diversos'
 import { formatDate } from '@/lib/utils'
 
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function ArticleViewPage() {
   const { slug } = useParams()
   const { data } = useCMSState()
@@ -23,6 +32,7 @@ export function ArticleViewPage() {
 
   const categoryMeta = getArticleCategoryMeta(article.category)
   const backPath = getArticleCategoryPath(article.category)
+  const articleSources = article.sources.filter(Boolean)
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 pb-24">
@@ -49,6 +59,31 @@ export function ArticleViewPage() {
             className="prose-catechesis"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.contentHtml) }}
           />
+          {articleSources.length > 0 ? (
+            <div className="rounded-[24px] border border-stone-200 bg-stone-50/80 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Fontes utilizadas
+              </p>
+              <ul className="mt-3 space-y-3 text-sm leading-6 text-stone-700">
+                {articleSources.map((source) => (
+                  <li key={source}>
+                    {isHttpUrl(source) ? (
+                      <a
+                        href={source}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        {source}
+                      </a>
+                    ) : (
+                      source
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </Card>
 

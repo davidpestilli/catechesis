@@ -323,6 +323,8 @@ insert into public.articles (
   category,
   tags,
   cover_image_url,
+  card_image_url,
+  sources,
   featured
 )
 values (
@@ -334,6 +336,8 @@ values (
   'general',
   array['metodologia', 'planejamento', 'catequese'],
   'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
+  array['Diretorio Nacional de Catequese', 'https://www.vatican.va'],
   true
 ),
 (
@@ -345,6 +349,8 @@ values (
   'saints-life',
   array['santos', 'testemunho', 'espiritualidade'],
   'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',
+  array['https://www.vatican.va'],
   false
 )
 on conflict (id) do update
@@ -356,6 +362,8 @@ set
   category = excluded.category,
   tags = excluded.tags,
   cover_image_url = excluded.cover_image_url,
+  card_image_url = excluded.card_image_url,
+  sources = excluded.sources,
   featured = excluded.featured,
   updated_at = timezone('utc', now());
 

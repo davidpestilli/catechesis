@@ -99,12 +99,15 @@
 
   .prose-catechesis {
     @apply max-w-none text-lg leading-8 text-stone-700;
+    text-align: justify;
+    text-justify: inter-word;
   }
 
   .prose-catechesis h1,
   .prose-catechesis h2,
   .prose-catechesis h3 {
     @apply font-display text-stone-900;
+    text-align: left;
   }
 
   .prose-catechesis h2 {
@@ -115,6 +118,15 @@
     @apply my-4;
   }
 
+  .prose-catechesis ul,
+  .prose-catechesis ol {
+    @apply my-4 pl-6;
+  }
+
+  .prose-catechesis li {
+    @apply my-2;
+  }
+
   .prose-catechesis blockquote {
     @apply my-6 rounded-[24px] border-l-4 border-primary bg-stone-100/80 px-5 py-4 italic text-stone-700;
   }
@@ -123,10 +135,15 @@
   .prose-catechesis video,
   .prose-catechesis iframe {
     @apply my-6 rounded-[28px];
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .rich-text-editor-content {
     word-break: break-word;
+    text-align: justify;
+    text-justify: inter-word;
   }
 
   .rich-text-editor-content:empty::before {
@@ -148,7 +165,8 @@
   .rich-text-editor-content h3,
   .rich-text-editor-content ul,
   .rich-text-editor-content ol,
-  .rich-text-editor-content blockquote {
+  .rich-text-editor-content blockquote,
+  .rich-text-editor-content div {
     margin-bottom: 1rem;
   }
 
@@ -175,6 +193,8 @@
   .rich-text-editor-content video {
     display: block;
     max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 

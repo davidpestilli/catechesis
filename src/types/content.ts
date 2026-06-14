@@ -74,6 +74,8 @@ export interface Article {
   category: ArticleCategory
   tags: string[]
   coverImageUrl?: string
+  cardImageUrl?: string
+  sources: string[]
   featured?: boolean
   publishedAt: string
 }

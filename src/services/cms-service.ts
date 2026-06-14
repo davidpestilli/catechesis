@@ -42,6 +42,14 @@ function sanitizeHomeLead(value: unknown) {
   return REMOVED_HOME_LEADS.has(text) ? '' : text
 }
 
+function sanitizeArticleSources(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((source) => (typeof source === 'string' ? source.trim() : ''))
+    .filter(Boolean)
+}
+
 const landingImageMotions = new Set<LandingImageMotion>(['drift-a', 'drift-b', 'drift-c'])
 
 function sanitizeLandingImages(value: unknown) {
@@ -221,6 +229,8 @@ async function mapSupabaseState(): Promise<CMSState> {
         tags: article.tags ?? [],
         featured: article.featured ?? false,
         coverImageUrl: article.cover_image_url ?? undefined,
+        cardImageUrl: article.card_image_url ?? article.cover_image_url ?? undefined,
+        sources: sanitizeArticleSources(article.sources),
         publishedAt: article.published_at ?? new Date().toISOString(),
       })) ?? [],
     usefulLinks:
@@ -360,6 +370,8 @@ export const cmsService = {
       tags: article.tags,
       featured: article.featured,
       cover_image_url: article.coverImageUrl,
+      card_image_url: article.cardImageUrl,
+      sources: sanitizeArticleSources(article.sources),
       published_at: article.publishedAt,
     }
 
@@ -377,6 +389,8 @@ export const cmsService = {
       tags: data.tags ?? [],
       featured: data.featured ?? false,
       coverImageUrl: data.cover_image_url ?? undefined,
+      cardImageUrl: data.card_image_url ?? data.cover_image_url ?? undefined,
+      sources: sanitizeArticleSources(data.sources),
       publishedAt: data.published_at ?? new Date().toISOString(),
     } satisfies Article
   },
