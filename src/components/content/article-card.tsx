@@ -30,7 +30,7 @@ export function ArticleCard({ article }: { article: Article }) {
           ))}
         </div>
         <CardTitle className="mt-5">{article.title}</CardTitle>
-        <CardDescription className="mt-3">{article.excerpt}</CardDescription>
+        <CardDescription className="mt-3 text-justify">{article.excerpt}</CardDescription>
         <div className="mt-5 flex items-center justify-between text-sm text-stone-500">
           <span>{formatDate(article.publishedAt)}</span>
           <Link
