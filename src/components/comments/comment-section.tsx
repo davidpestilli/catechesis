@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SubscriptionEmailNotice } from '@/components/subscriptions/subscription-email-notice'
 import { Textarea } from '@/components/ui/textarea'
 
 interface CommentSectionProps {
@@ -158,7 +159,9 @@ function CommentForm({
           <span>
             Quero acompanhar esta conversa por email.
             <span className="block text-xs text-stone-500">
-              Se marcar esta opcao, o email passa a ser obrigatorio e voce podera sair da thread por link de descadastro.
+              Se marcar esta opcao, o email passa a ser obrigatorio. O aviso de confirmacao pode levar alguns minutos
+              para chegar e vale conferir a caixa de spam ou a lixeira. Depois, voce podera sair da thread por link
+              de descadastro.
             </span>
           </span>
         </label>
@@ -335,13 +338,13 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
       {isOpen ? (
         <div className="space-y-6 border-t border-stone-200/80 p-5 sm:p-6">
           {subscriptionNoticeVisible ? (
-            <div className="rounded-[28px] border border-amber-300 bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,247,237,0.98))] px-5 py-4 text-sm leading-7 text-amber-950 shadow-[0_18px_45px_rgba(146,64,14,0.08)]">
-              <p className="font-semibold uppercase tracking-[0.18em] text-amber-800">Verifique seu email</p>
-              <p className="mt-2">
+            <SubscriptionEmailNotice>
+              <p>
                 Enviamos um email confirmando a assinatura desta thread. Ele pode levar alguns minutos para chegar.
-                Se cair na caixa de spam, mova-o para a caixa principal para ajudar no recebimento dos proximos emails do sistema.
+                Se cair na caixa de spam ou na lixeira, mova-o para a caixa principal para ajudar no recebimento dos
+                proximos emails do sistema.
               </p>
-            </div>
+            </SubscriptionEmailNotice>
           ) : null}
 
           {isAvailable ? (
