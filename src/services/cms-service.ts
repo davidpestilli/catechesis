@@ -5,7 +5,7 @@ import {
 } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
 import { normalizeArticleCategory } from '@/lib/diversos'
-import { hasSupabaseConfig } from '@/lib/env'
+import { env, hasSupabaseConfig } from '@/lib/env'
 import { ensureUuid, fileToDataUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import {
@@ -48,6 +48,89 @@ function sanitizeArticleSources(value: unknown) {
   return value
     .map((source) => (typeof source === 'string' ? source.trim() : ''))
     .filter(Boolean)
+}
+
+interface ArticleRow {
+  id: string
+  slug: string
+  title: string
+  excerpt?: string | null
+  content_html: string
+  category: string
+  tags?: string[] | null
+  featured?: boolean | null
+  cover_image_url?: string | null
+  card_image_url?: string | null
+  sources?: string[] | null
+  published_at?: string | null
+}
+
+function mapArticleRow(article: ArticleRow): Article {
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    excerpt: article.excerpt ?? '',
+    contentHtml: article.content_html,
+    category: normalizeArticleCategory(article.category),
+    tags: article.tags ?? [],
+    featured: article.featured ?? false,
+    coverImageUrl: article.cover_image_url ?? undefined,
+    cardImageUrl: article.card_image_url ?? article.cover_image_url ?? undefined,
+    sources: sanitizeArticleSources(article.sources),
+    publishedAt: article.published_at ?? new Date().toISOString(),
+  }
+}
+
+async function getAuthToken() {
+  if (!supabase) return null
+
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
+async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
+  if (!env.workerUrl) {
+    throw new Error('A URL do Worker nao foi configurada.')
+  }
+
+  const token = await getAuthToken()
+
+  if (!token) {
+    throw new Error('Sua sessao expirou. Faca login novamente para salvar o artigo.')
+  }
+
+  const response = await fetch(`${env.workerUrl}/admin/articles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      id: ensureUuid(article.id),
+      slug: article.slug,
+      title: article.title,
+      excerpt: article.excerpt,
+      contentHtml: article.contentHtml,
+      category: normalizeArticleCategory(article.category),
+      tags: article.tags ?? [],
+      featured: article.featured ?? false,
+      coverImageUrl: article.coverImageUrl ?? '',
+      cardImageUrl: article.cardImageUrl ?? article.coverImageUrl ?? '',
+      sources: sanitizeArticleSources(article.sources),
+      publishedAt: article.publishedAt,
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as
+    | { article?: ArticleRow; error?: string }
+    | null
+
+  if (!response.ok || !payload?.article) {
+    throw new Error(payload?.error ?? 'Nao foi possivel salvar o artigo.')
+  }
+
+  return mapArticleRow(payload.article)
 }
 
 const landingImageMotions = new Set<LandingImageMotion>(['drift-a', 'drift-b', 'drift-c'])
@@ -219,20 +302,7 @@ async function mapSupabaseState(): Promise<CMSState> {
         quiz: quizzesByEncounter.get(encounter.id),
       })) ?? [],
     articles:
-      (articlesRes.data ?? []).map((article) => ({
-        id: article.id,
-        slug: article.slug,
-        title: article.title,
-        excerpt: article.excerpt ?? '',
-        contentHtml: article.content_html,
-        category: normalizeArticleCategory(article.category),
-        tags: article.tags ?? [],
-        featured: article.featured ?? false,
-        coverImageUrl: article.cover_image_url ?? undefined,
-        cardImageUrl: article.card_image_url ?? article.cover_image_url ?? undefined,
-        sources: sanitizeArticleSources(article.sources),
-        publishedAt: article.published_at ?? new Date().toISOString(),
-      })) ?? [],
+      (articlesRes.data ?? []).map((article) => mapArticleRow(article as ArticleRow)) ?? [],
     usefulLinks:
       (usefulLinksRes.data ?? []).map((usefulLink) => ({
         id: usefulLink.id,
@@ -360,6 +430,10 @@ export const cmsService = {
       })
     }
 
+    if (env.workerUrl) {
+      return saveArticleWithWorker(article)
+    }
+
     const payload = {
       id: ensureUuid(article.id),
       slug: article.slug,
@@ -379,20 +453,7 @@ export const cmsService = {
 
     if (error) throw new Error(error.message)
 
-    return {
-      id: data.id,
-      slug: data.slug,
-      title: data.title,
-      excerpt: data.excerpt ?? '',
-      contentHtml: data.content_html,
-      category: normalizeArticleCategory(data.category),
-      tags: data.tags ?? [],
-      featured: data.featured ?? false,
-      coverImageUrl: data.cover_image_url ?? undefined,
-      cardImageUrl: data.card_image_url ?? data.cover_image_url ?? undefined,
-      sources: sanitizeArticleSources(data.sources),
-      publishedAt: data.published_at ?? new Date().toISOString(),
-    } satisfies Article
+    return mapArticleRow(data as ArticleRow)
   },
 
   async saveUsefulLink(usefulLink: Partial<UsefulLink> & Pick<UsefulLink, 'title' | 'url'>) {

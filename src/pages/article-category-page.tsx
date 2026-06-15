@@ -1,7 +1,14 @@
+import { useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { ArticleCard } from '@/components/content/article-card'
 import { SectionTitle } from '@/components/home/section-title'
 import { FloatingBackButton } from '@/components/navigation/floating-back-button'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useCreateArticleCategorySubscription } from '@/hooks/use-article-subscriptions'
 import { useCMSState } from '@/hooks/use-cms'
 import {
   articleCategoryOptions,
@@ -14,6 +21,8 @@ const validFolders = new Set(articleCategoryOptions.map((option) => option.folde
 export function ArticleCategoryPage() {
   const { folderSlug } = useParams()
   const { data } = useCMSState()
+  const createSubscription = useCreateArticleCategorySubscription()
+  const [subscriberEmail, setSubscriberEmail] = useState('')
 
   if (!folderSlug || !validFolders.has(folderSlug)) {
     return <Navigate to="/artigos" replace />
@@ -27,9 +36,37 @@ export function ArticleCategoryPage() {
   if (!category) {
     return <Navigate to="/artigos" replace />
   }
+  const activeCategory = category
 
-  const meta = getArticleCategoryMeta(category)
-  const filteredArticles = data.articles.filter((article) => article.category === category)
+  const meta = getArticleCategoryMeta(activeCategory)
+  const filteredArticles = data.articles.filter((article) => article.category === activeCategory)
+
+  async function handleSubscribe() {
+    const trimmedEmail = subscriberEmail.trim().toLowerCase()
+
+    if (!trimmedEmail) {
+      toast.error('Informe seu email para receber notificacoes.')
+      return
+    }
+
+    try {
+      const result = await createSubscription.mutateAsync({
+        category: activeCategory,
+        email: trimmedEmail,
+      })
+
+      if (result.alreadySubscribed) {
+        toast.warning('Este email ja esta inscrito nesta pasta.')
+        return
+      }
+
+      setSubscriberEmail('')
+      toast.success('Inscricao registrada. Voce recebera um email de confirmacao.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel registrar sua inscricao.'
+      toast.error(message)
+    }
+  }
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 pb-24">
@@ -40,6 +77,28 @@ export function ArticleCategoryPage() {
         title={meta.label}
         body={meta.description}
       />
+
+      <Card className="mb-6">
+        <CardTitle>Receber novos artigos por email</CardTitle>
+        <CardDescription className="mt-2">
+          Inscreva-se para ser avisado sempre que um novo artigo for publicado em {meta.label}.
+        </CardDescription>
+        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="article-category-subscription-email">Email</Label>
+            <Input
+              id="article-category-subscription-email"
+              type="email"
+              value={subscriberEmail}
+              onChange={(event) => setSubscriberEmail(event.target.value)}
+              placeholder="voce@exemplo.com"
+            />
+          </div>
+          <Button onClick={() => void handleSubscribe()} disabled={createSubscription.isPending}>
+            {createSubscription.isPending ? 'Inscrevendo...' : 'Quero ser notificado'}
+          </Button>
+        </div>
+      </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {filteredArticles.map((article) => (

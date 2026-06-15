@@ -1,4 +1,8 @@
 import {
+  buildArticleCategorySubscriptionHtml,
+  buildArticleCategorySubscriptionSubject,
+  buildArticlePublicationHtml,
+  buildArticlePublicationSubject,
   buildCommentNotificationHtml,
   buildCommentNotificationSubject,
   buildThreadSubscriptionHtml,
@@ -23,6 +27,8 @@ interface GatewayEnv {
 type CommentContentType = 'article' | 'encounter'
 type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
+type ArticleCategory = 'general' | 'saints-life'
+type ArticleSubscriptionSource = 'manual_form'
 type UserRole = 'admin' | 'catequista'
 const CATEQUETICO_APP_CODE = 'catequetico'
 
@@ -109,6 +115,60 @@ interface ArticleRow {
   id: string
   slug: string
   title: string
+  excerpt?: string | null
+  category?: ArticleCategory | null
+  card_image_url?: string | null
+  cover_image_url?: string | null
+  featured?: boolean | null
+  tags?: string[] | null
+  published_at?: string | null
+  content_html?: string | null
+}
+
+interface ArticleInput {
+  id?: string
+  slug?: string
+  title?: string
+  excerpt?: string
+  contentHtml?: string
+  category?: string
+  tags?: unknown
+  featured?: boolean
+  coverImageUrl?: string
+  cardImageUrl?: string
+  sources?: unknown
+  publishedAt?: string
+}
+
+interface ArticleSubscriptionRow {
+  id: string
+  category: ArticleCategory
+  email: string
+  subscriber_name: string
+  source: ArticleSubscriptionSource
+  unsubscribe_token: string
+  unsubscribed_at: string | null
+}
+
+interface ArticleNotificationEventInsert {
+  article_id?: string | null
+  subscription_id?: string | null
+  category: ArticleCategory
+  event_type:
+    | 'subscription_created'
+    | 'already_subscribed'
+    | 'publication_created'
+    | 'email_queued'
+    | 'email_failed'
+    | 'unsubscribe'
+  recipient_email?: string | null
+  payload?: Record<string, unknown>
+}
+
+interface ArticleSubscriptionRequestBody {
+  category?: string
+  email?: string
+  subscriberName?: string
 }
 
 interface EncounterRow {
@@ -202,6 +262,17 @@ interface UpdateUserRequestBody {
   name?: string
 }
 
+const articleCategoryMeta = {
+  general: {
+    label: 'Gerais',
+    folderSlug: 'gerais',
+  },
+  'saints-life': {
+    label: 'Vida dos Santos',
+    folderSlug: 'vida-dos-santos',
+  },
+} satisfies Record<ArticleCategory, { label: string; folderSlug: string }>
+
 function corsHeaders(origin: string | null, env: GatewayEnv) {
   const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map((item) => item.trim())
   const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] ?? '*'
@@ -264,6 +335,58 @@ function getSiteName(env: GatewayEnv) {
 function buildAppThreadUrl(baseUrl: string, route: string, threadId: string) {
   const normalizedRoute = route.startsWith('/') ? route : `/${route}`
   return `${baseUrl}/#${normalizedRoute}?thread=${encodeURIComponent(threadId)}`
+}
+
+function normalizeArticleCategory(value?: string | null): ArticleCategory | null {
+  if (value === 'general' || value === 'saints-life') {
+    return value
+  }
+
+  return null
+}
+
+function getArticleCategoryDetails(category: ArticleCategory) {
+  return articleCategoryMeta[category]
+}
+
+function buildArticleCategoryUrl(baseUrl: string, category: ArticleCategory) {
+  const { folderSlug } = getArticleCategoryDetails(category)
+  return `${baseUrl}/#/artigos/pasta/${encodeURIComponent(folderSlug)}`
+}
+
+function buildArticleUrl(baseUrl: string, slug: string) {
+  return `${baseUrl}/#/artigos/${encodeURIComponent(slug)}`
+}
+
+function sanitizeStringArray(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean)
+}
+
+function formatArticlePublishedAtLabel(value?: string | null) {
+  const date = value ? new Date(value) : new Date()
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Publicado recentemente'
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'long',
+    timeZone: 'America/Sao_Paulo',
+  }).format(date)
+}
+
+function buildSubscriberName(email: string, subscriberName?: string | null) {
+  const normalizedName = subscriberName?.trim() ?? ''
+
+  if (normalizedName) {
+    return normalizedName
+  }
+
+  return email.trim().split('@')[0] || 'Participante'
 }
 
 async function parseJson<T>(request: Request) {
@@ -679,6 +802,333 @@ async function sendUserCredentialsEmail(
   }
 
   return data.request_id ?? null
+}
+
+async function getArticleById(env: GatewayEnv, articleId: string) {
+  const { response, data } = await supabaseRest<ArticleRow[]>(
+    env,
+    `/articles?select=*&id=eq.${articleId}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    return null
+  }
+
+  return data[0]
+}
+
+async function upsertArticleRow(
+  env: GatewayEnv,
+  payload: {
+    id: string
+    slug: string
+    title: string
+    excerpt: string
+    content_html: string
+    category: ArticleCategory
+    tags: string[]
+    featured: boolean
+    cover_image_url: string | null
+    card_image_url: string | null
+    sources: string[]
+    published_at: string
+  },
+) {
+  const { response, data } = await supabaseRest<ArticleRow[]>(
+    env,
+    '/articles?on_conflict=id',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify(payload),
+    },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    throw new Error('Nao foi possivel salvar o artigo.')
+  }
+
+  return data[0]
+}
+
+async function ensureArticleCategorySubscription(
+  env: GatewayEnv,
+  input: {
+    category: ArticleCategory
+    email: string
+    subscriberName: string
+    source: ArticleSubscriptionSource
+  },
+) {
+  const normalizedEmail = input.email.trim().toLowerCase()
+  const { response, data } = await supabaseRest<ArticleSubscriptionRow[]>(
+    env,
+    `/article_category_subscriptions?select=*&category=eq.${input.category}&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok) {
+    throw new Error('Nao foi possivel consultar as inscricoes desta pasta.')
+  }
+
+  if (Array.isArray(data) && data.length > 0) {
+    const existing = data[0]
+
+    if (!existing.unsubscribed_at) {
+      return { subscription: existing, created: false }
+    }
+
+    const { response: updateResponse, data: updateData } = await supabaseRest<ArticleSubscriptionRow[]>(
+      env,
+      `/article_category_subscriptions?id=eq.${existing.id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
+          subscriber_name: input.subscriberName,
+          source: input.source,
+          unsubscribed_at: null,
+        }),
+      },
+    )
+
+    if (!updateResponse.ok || !Array.isArray(updateData) || updateData.length === 0) {
+      throw new Error('Nao foi possivel reativar a inscricao desta pasta.')
+    }
+
+    return { subscription: updateData[0], created: true }
+  }
+
+  const { response: insertResponse, data: insertData } = await supabaseRest<ArticleSubscriptionRow[]>(
+    env,
+    '/article_category_subscriptions',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({
+        category: input.category,
+        email: normalizedEmail,
+        subscriber_name: input.subscriberName,
+        source: input.source,
+      }),
+    },
+  )
+
+  if (!insertResponse.ok || !Array.isArray(insertData) || insertData.length === 0) {
+    throw new Error('Nao foi possivel criar a inscricao desta pasta.')
+  }
+
+  return { subscription: insertData[0], created: true }
+}
+
+async function listActiveArticleCategorySubscriptions(env: GatewayEnv, category: ArticleCategory) {
+  const { response, data } = await supabaseRest<ArticleSubscriptionRow[]>(
+    env,
+    `/article_category_subscriptions?select=*&category=eq.${category}&unsubscribed_at=is.null`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok) {
+    throw new Error('Nao foi possivel carregar as inscricoes desta pasta.')
+  }
+
+  return Array.isArray(data) ? data : []
+}
+
+async function insertArticleNotificationEvents(
+  env: GatewayEnv,
+  events: ArticleNotificationEventInsert[],
+) {
+  if (events.length === 0) return
+
+  await supabaseRest(
+    env,
+    '/article_notification_events',
+    {
+      method: 'POST',
+      body: JSON.stringify(
+        events.map((event) => ({
+          article_id: event.article_id ?? null,
+          subscription_id: event.subscription_id ?? null,
+          category: event.category,
+          event_type: event.event_type,
+          recipient_email: event.recipient_email ?? null,
+          payload: event.payload ?? {},
+        })),
+      ),
+    },
+  )
+}
+
+async function queueArticleCategorySubscriptionEmail(
+  env: GatewayEnv,
+  input: {
+    subscription: ArticleSubscriptionRow
+    category: ArticleCategory
+    baseUrl: string
+    workerBaseUrl: string
+  },
+) {
+  const fromEmail = env.ZEPTO_MAIL_FROM_EMAIL?.trim() || 'noreply@catequetico.org'
+  const fromName = env.ZEPTO_MAIL_FROM_NAME?.trim() || getSiteName(env)
+  const categoryMeta = getArticleCategoryDetails(input.category)
+  const unsubscribeUrl = `${input.workerBaseUrl}/article-subscriptions/unsubscribe?token=${encodeURIComponent(input.subscription.unsubscribe_token)}`
+  const categoryUrl = buildArticleCategoryUrl(input.baseUrl, input.category)
+  const subject = buildArticleCategorySubscriptionSubject({
+    categoryLabel: categoryMeta.label,
+    categoryUrl,
+    subscriberName: input.subscription.subscriber_name,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+  const bodyHtml = buildArticleCategorySubscriptionHtml({
+    categoryLabel: categoryMeta.label,
+    categoryUrl,
+    subscriberName: input.subscription.subscriber_name,
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+
+  const { response, data } = await supabaseRpc<ZeptoMailRpcResponse>(env, 'enviar_email_zeptomail', {
+    p_destinatario: input.subscription.email,
+    p_assunto: subject,
+    p_corpo_html: bodyHtml,
+    p_remetente_email: fromEmail,
+    p_remetente_nome: fromName,
+  })
+
+  if (!response.ok || !data?.success) {
+    return {
+      success: false,
+      error: data?.error ?? `RPC retornou status ${response.status}.`,
+    }
+  }
+
+  return {
+    success: true,
+    requestId: data.request_id,
+  }
+}
+
+async function queueArticlePublicationEmail(
+  env: GatewayEnv,
+  input: {
+    subscription: ArticleSubscriptionRow
+    article: ArticleRow
+    category: ArticleCategory
+    baseUrl: string
+    workerBaseUrl: string
+  },
+) {
+  const fromEmail = env.ZEPTO_MAIL_FROM_EMAIL?.trim() || 'noreply@catequetico.org'
+  const fromName = env.ZEPTO_MAIL_FROM_NAME?.trim() || getSiteName(env)
+  const categoryMeta = getArticleCategoryDetails(input.category)
+  const unsubscribeUrl = `${input.workerBaseUrl}/article-subscriptions/unsubscribe?token=${encodeURIComponent(input.subscription.unsubscribe_token)}`
+  const categoryUrl = buildArticleCategoryUrl(input.baseUrl, input.category)
+  const articleUrl = buildArticleUrl(input.baseUrl, input.article.slug)
+  const subject = buildArticlePublicationSubject({
+    articleTitle: input.article.title,
+    articleExcerpt: input.article.excerpt?.trim() || 'Um novo artigo foi publicado nesta pasta.',
+    articleUrl,
+    categoryLabel: categoryMeta.label,
+    categoryUrl,
+    cardImageUrl: input.article.card_image_url ?? input.article.cover_image_url ?? undefined,
+    publishedAtLabel: formatArticlePublishedAtLabel(input.article.published_at),
+    featured: Boolean(input.article.featured),
+    tags: sanitizeStringArray(input.article.tags),
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+  const bodyHtml = buildArticlePublicationHtml({
+    articleTitle: input.article.title,
+    articleExcerpt: input.article.excerpt?.trim() || 'Um novo artigo foi publicado nesta pasta.',
+    articleUrl,
+    categoryLabel: categoryMeta.label,
+    categoryUrl,
+    cardImageUrl: input.article.card_image_url ?? input.article.cover_image_url ?? undefined,
+    publishedAtLabel: formatArticlePublishedAtLabel(input.article.published_at),
+    featured: Boolean(input.article.featured),
+    tags: sanitizeStringArray(input.article.tags),
+    unsubscribeUrl,
+    siteName: getSiteName(env),
+  })
+
+  const { response, data } = await supabaseRpc<ZeptoMailRpcResponse>(env, 'enviar_email_zeptomail', {
+    p_destinatario: input.subscription.email,
+    p_assunto: subject,
+    p_corpo_html: bodyHtml,
+    p_remetente_email: fromEmail,
+    p_remetente_nome: fromName,
+  })
+
+  if (!response.ok || !data?.success) {
+    return {
+      success: false,
+      error: data?.error ?? `RPC retornou status ${response.status}.`,
+    }
+  }
+
+  return {
+    success: true,
+    requestId: data.request_id,
+  }
+}
+
+async function notifyArticleCategorySubscribers(
+  env: GatewayEnv,
+  article: ArticleRow,
+  category: ArticleCategory,
+  baseUrl: string,
+  workerBaseUrl: string,
+) {
+  const subscriptions = await listActiveArticleCategorySubscriptions(env, category)
+  const events: ArticleNotificationEventInsert[] = [
+    {
+      article_id: article.id,
+      category,
+      event_type: 'publication_created',
+      payload: {
+        articleSlug: article.slug,
+        totalSubscribers: subscriptions.length,
+      },
+    },
+  ]
+
+  for (const subscription of subscriptions) {
+    const result = await queueArticlePublicationEmail(env, {
+      subscription,
+      article,
+      category,
+      baseUrl,
+      workerBaseUrl,
+    })
+
+    events.push({
+      article_id: article.id,
+      subscription_id: subscription.id,
+      category,
+      recipient_email: subscription.email,
+      event_type: result.success ? 'email_queued' : 'email_failed',
+      payload: result.success
+        ? {
+            requestId: result.requestId ?? null,
+            source: subscription.source,
+          }
+        : {
+            source: subscription.source,
+            error: result.error,
+          },
+    })
+  }
+
+  await insertArticleNotificationEvents(env, events)
 }
 
 async function ensureContentExists(env: GatewayEnv, contentType: CommentContentType, contentId: string) {
@@ -1291,6 +1741,215 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   }
 }
 
+async function handleCreateArticleSubscription(
+  request: Request,
+  env: GatewayEnv,
+  headers: Record<string, string>,
+) {
+  const body = await parseJson<ArticleSubscriptionRequestBody>(request)
+
+  if (!body) {
+    return json({ error: 'Corpo invalido.' }, 400, headers)
+  }
+
+  const category = normalizeArticleCategory(body.category)
+  const email = body.email?.trim().toLowerCase() ?? ''
+
+  if (!category) {
+    return json({ error: 'Pasta invalida.' }, 400, headers)
+  }
+
+  if (!isValidEmail(email)) {
+    return json({ error: 'Informe um email valido.' }, 400, headers)
+  }
+
+  const subscriberName = buildSubscriberName(email, body.subscriberName)
+
+  try {
+    const result = await ensureArticleCategorySubscription(env, {
+      category,
+      email,
+      subscriberName,
+      source: 'manual_form',
+    })
+
+    if (!result.created) {
+      await insertArticleNotificationEvents(env, [
+        {
+          subscription_id: result.subscription.id,
+          category,
+          recipient_email: result.subscription.email,
+          event_type: 'already_subscribed',
+          payload: {
+            source: result.subscription.source,
+          },
+        },
+      ])
+
+      return json(
+        {
+          ok: true,
+          alreadySubscribed: true,
+        },
+        200,
+        headers,
+      )
+    }
+
+    const baseUrl = normalizeBaseUrl(env.APP_BASE_URL) || new URL(request.url).origin
+    const workerBaseUrl = new URL(request.url).origin
+    const emailResult = await queueArticleCategorySubscriptionEmail(env, {
+      subscription: result.subscription,
+      category,
+      baseUrl,
+      workerBaseUrl,
+    })
+
+    await insertArticleNotificationEvents(env, [
+      {
+        subscription_id: result.subscription.id,
+        category,
+        recipient_email: result.subscription.email,
+        event_type: 'subscription_created',
+        payload: {
+          source: result.subscription.source,
+        },
+      },
+      {
+        subscription_id: result.subscription.id,
+        category,
+        recipient_email: result.subscription.email,
+        event_type: emailResult.success ? 'email_queued' : 'email_failed',
+        payload: emailResult.success
+          ? {
+              kind: 'article_category_subscription_confirmation',
+              requestId: emailResult.requestId ?? null,
+              source: result.subscription.source,
+            }
+          : {
+              kind: 'article_category_subscription_confirmation',
+              source: result.subscription.source,
+              error: emailResult.error,
+            },
+      },
+    ])
+
+    return json(
+      {
+        ok: true,
+        alreadySubscribed: false,
+      },
+      201,
+      headers,
+    )
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel registrar a inscricao.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
+async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: Record<string, string>) {
+  const authUser = await getAuthenticatedUser(request, env)
+
+  if (!isAdminUser(authUser)) {
+    return json({ error: 'Apenas administradores podem salvar artigos.' }, 403, headers)
+  }
+
+  const body = await parseJson<ArticleInput>(request)
+
+  if (!body) {
+    return json({ error: 'Corpo invalido.' }, 400, headers)
+  }
+
+  const articleId = typeof body.id === 'string' ? body.id.trim() : ''
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : ''
+  const title = typeof body.title === 'string' ? body.title.trim() : ''
+  const excerpt = typeof body.excerpt === 'string' ? body.excerpt.trim() : ''
+  const contentHtml = typeof body.contentHtml === 'string' ? body.contentHtml.trim() : ''
+  const category = normalizeArticleCategory(body.category)
+  const featured = Boolean(body.featured)
+  const tags = sanitizeStringArray(body.tags)
+  const sources = sanitizeStringArray(body.sources)
+  const coverImageUrl =
+    typeof body.coverImageUrl === 'string' && body.coverImageUrl.trim() ? body.coverImageUrl.trim() : null
+  const cardImageUrl =
+    typeof body.cardImageUrl === 'string' && body.cardImageUrl.trim()
+      ? body.cardImageUrl.trim()
+      : coverImageUrl
+  const publishedAt =
+    typeof body.publishedAt === 'string' && !Number.isNaN(new Date(body.publishedAt).getTime())
+      ? new Date(body.publishedAt).toISOString()
+      : new Date().toISOString()
+
+  if (!isUuid(articleId)) {
+    return json({ error: 'Identificador do artigo invalido.' }, 400, headers)
+  }
+
+  if (!slug) {
+    return json({ error: 'Informe o slug do artigo.' }, 400, headers)
+  }
+
+  if (!title) {
+    return json({ error: 'Informe o titulo do artigo.' }, 400, headers)
+  }
+
+  if (!contentHtml) {
+    return json({ error: 'Informe o conteudo do artigo.' }, 400, headers)
+  }
+
+  if (!category) {
+    return json({ error: 'Informe a pasta do artigo.' }, 400, headers)
+  }
+
+  try {
+    const existingArticle = await getArticleById(env, articleId)
+    const savedArticle = await upsertArticleRow(env, {
+      id: articleId,
+      slug,
+      title,
+      excerpt,
+      content_html: contentHtml,
+      category,
+      tags,
+      featured,
+      cover_image_url: coverImageUrl,
+      card_image_url: cardImageUrl,
+      sources,
+      published_at: publishedAt,
+    })
+
+    const isNewArticle = !existingArticle
+
+    if (isNewArticle) {
+      const baseUrl = normalizeBaseUrl(env.APP_BASE_URL) || new URL(request.url).origin
+      const workerBaseUrl = new URL(request.url).origin
+      await notifyArticleCategorySubscribers(env, savedArticle, category, baseUrl, workerBaseUrl)
+    }
+
+    return json(
+      {
+        article: savedArticle,
+        publicationNotificationSent: isNewArticle,
+      },
+      isNewArticle ? 201 : 200,
+      headers,
+    )
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel salvar o artigo.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
 async function handleListUsers(request: Request, env: GatewayEnv, headers: Record<string, string>) {
   const authUser = await getAuthenticatedUser(request, env)
 
@@ -1542,6 +2201,72 @@ async function handleDeleteUser(
   }
 }
 
+async function handleArticleSubscriptionUnsubscribe(
+  request: Request,
+  env: GatewayEnv,
+  headers: Record<string, string>,
+) {
+  const url = new URL(request.url)
+  const token = url.searchParams.get('token')?.trim() ?? ''
+
+  if (!isUuid(token)) {
+    return html(
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Link invalido</h1><p>O token de descadastro informado nao e valido.</p></main>`,
+      400,
+      headers,
+    )
+  }
+
+  const { response, data } = await supabaseRest<ArticleSubscriptionRow[]>(
+    env,
+    `/article_category_subscriptions?select=*&unsubscribe_token=eq.${encodeURIComponent(token)}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    return html(
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Inscricao nao encontrada</h1><p>Este link nao corresponde a uma inscricao ativa.</p></main>`,
+      404,
+      headers,
+    )
+  }
+
+  const subscription = data[0]
+
+  if (!subscription.unsubscribed_at) {
+    await supabaseRest(
+      env,
+      `/article_category_subscriptions?id=eq.${subscription.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          unsubscribed_at: new Date().toISOString(),
+        }),
+      },
+    )
+
+    await insertArticleNotificationEvents(env, [
+      {
+        subscription_id: subscription.id,
+        category: subscription.category,
+        recipient_email: subscription.email,
+        event_type: 'unsubscribe',
+        payload: {
+          source: subscription.source,
+        },
+      },
+    ])
+  }
+
+  const categoryLabel = getArticleCategoryDetails(subscription.category).label
+
+  return html(
+    `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Descadastro concluido</h1><p>O endereco <strong>${escapeHtml(subscription.email)}</strong> nao recebera mais notificacoes de novos artigos em <strong>${escapeHtml(categoryLabel)}</strong>.</p></main>`,
+    200,
+    headers,
+  )
+}
+
 async function handleUnsubscribe(request: Request, env: GatewayEnv, headers: Record<string, string>) {
   const url = new URL(request.url)
   const token = url.searchParams.get('token')?.trim() ?? ''
@@ -1636,6 +2361,14 @@ export default {
       return handleUnsubscribe(request, runtimeEnv, headers)
     }
 
+    if (url.pathname === '/article-subscriptions' && request.method === 'POST') {
+      return handleCreateArticleSubscription(request, runtimeEnv, headers)
+    }
+
+    if (url.pathname === '/article-subscriptions/unsubscribe' && request.method === 'GET') {
+      return handleArticleSubscriptionUnsubscribe(request, runtimeEnv, headers)
+    }
+
     if (url.pathname === '/admin/users' && request.method === 'GET') {
       return handleListUsers(request, runtimeEnv, headers)
     }
@@ -1654,6 +2387,10 @@ export default {
       if (request.method === 'DELETE') {
         return handleDeleteUser(request, runtimeEnv, headers, userId)
       }
+    }
+
+    if (url.pathname === '/admin/articles' && request.method === 'POST') {
+      return handleUpsertArticle(request, runtimeEnv, headers)
     }
 
     if (url.pathname === '/media') {

@@ -5,7 +5,14 @@ import {
   waitOnExecutionContext,
 } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import { buildThreadSubscriptionHtml, buildThreadSubscriptionSubject } from '../src/comment-email'
+import {
+  buildArticleCategorySubscriptionHtml,
+  buildArticleCategorySubscriptionSubject,
+  buildArticlePublicationHtml,
+  buildArticlePublicationSubject,
+  buildThreadSubscriptionHtml,
+  buildThreadSubscriptionSubject,
+} from '../src/comment-email'
 import worker from '../src'
 
 describe('catechesis gateway worker', () => {
@@ -79,5 +86,65 @@ describe('catechesis gateway worker', () => {
     expect(html).toContain('Maria')
     expect(html).toContain('Esta assinatura vale apenas para esta thread especifica.')
     expect(html).toContain('https://worker.example/comments/unsubscribe?token=abc')
+  })
+
+  it('monta o email de confirmacao de assinatura da pasta de artigos', () => {
+    const subject = buildArticleCategorySubscriptionSubject({
+      categoryLabel: 'Vida dos Santos',
+      categoryUrl: 'https://catequetico.org/#/artigos/pasta/vida-dos-santos',
+      subscriberName: 'Maria',
+      unsubscribeUrl: 'https://worker.example/article-subscriptions/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+    const html = buildArticleCategorySubscriptionHtml({
+      categoryLabel: 'Vida dos Santos',
+      categoryUrl: 'https://catequetico.org/#/artigos/pasta/vida-dos-santos',
+      subscriberName: 'Maria',
+      unsubscribeUrl: 'https://worker.example/article-subscriptions/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+
+    expect(subject).toContain('Inscricao confirmada em Vida dos Santos')
+    expect(html).toContain('Inscricao confirmada')
+    expect(html).toContain('Maria')
+    expect(html).toContain('Vida dos Santos')
+    expect(html).toContain('https://worker.example/article-subscriptions/unsubscribe?token=abc')
+  })
+
+  it('monta o email de nova publicacao de artigo com card', () => {
+    const subject = buildArticlePublicationSubject({
+      articleTitle: 'Santa Teresinha e a pequena via',
+      articleExcerpt: 'Um resumo sobre a espiritualidade simples e profunda de Santa Teresinha.',
+      articleUrl: 'https://catequetico.org/#/artigos/santa-teresinha-e-a-pequena-via',
+      categoryLabel: 'Vida dos Santos',
+      categoryUrl: 'https://catequetico.org/#/artigos/pasta/vida-dos-santos',
+      cardImageUrl: 'https://example.com/card.jpg',
+      publishedAtLabel: '15/06/2026',
+      featured: true,
+      tags: ['santos', 'espiritualidade'],
+      unsubscribeUrl: 'https://worker.example/article-subscriptions/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+    const html = buildArticlePublicationHtml({
+      articleTitle: 'Santa Teresinha e a pequena via',
+      articleExcerpt: 'Um resumo sobre a espiritualidade simples e profunda de Santa Teresinha.',
+      articleUrl: 'https://catequetico.org/#/artigos/santa-teresinha-e-a-pequena-via',
+      categoryLabel: 'Vida dos Santos',
+      categoryUrl: 'https://catequetico.org/#/artigos/pasta/vida-dos-santos',
+      cardImageUrl: 'https://example.com/card.jpg',
+      publishedAtLabel: '15/06/2026',
+      featured: true,
+      tags: ['santos', 'espiritualidade'],
+      unsubscribeUrl: 'https://worker.example/article-subscriptions/unsubscribe?token=abc',
+      siteName: 'Catequético',
+    })
+
+    expect(subject).toContain('Novo artigo em Vida dos Santos')
+    expect(subject).toContain('Santa Teresinha e a pequena via')
+    expect(html).toContain('Novo artigo publicado')
+    expect(html).toContain('Santa Teresinha e a pequena via')
+    expect(html).toContain('https://example.com/card.jpg')
+    expect(html).toContain('Destaque')
+    expect(html).toContain('https://worker.example/article-subscriptions/unsubscribe?token=abc')
   })
 })

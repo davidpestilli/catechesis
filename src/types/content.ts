@@ -172,3 +172,13 @@ export interface CreateCommentResult {
   comment: Comment
   subscriptionConfirmationNeeded: boolean
 }
+
+export interface ArticleCategorySubscriptionDraft {
+  category: ArticleCategory
+  email: string
+  subscriberName?: string
+}
+
+export interface CreateArticleCategorySubscriptionResult {
+  alreadySubscribed: boolean
+}
