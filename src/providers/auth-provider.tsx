@@ -13,10 +13,15 @@ const DEMO_EMAIL = 'demo@catechesis.local'
 const DEMO_PASSWORD = 'catechesis123'
 const DEMO_STORAGE_KEY = 'catechesis-demo-session'
 
-interface UserProfileRow {
+interface SharedUserProfileRow {
   id: string
   email: string
   nome: string
+  ativo: boolean
+}
+
+interface UserAppAccessRow {
+  user_id: string
   role: string
   ativo: boolean
 }
@@ -40,7 +45,7 @@ async function loadProfile(userId: string) {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id,email,nome,role,ativo')
+    .select('id,email,nome,ativo')
     .eq('id', userId)
     .maybeSingle()
 
@@ -48,23 +53,61 @@ async function loadProfile(userId: string) {
     throw new Error(error.message)
   }
 
-  return (data as UserProfileRow | null) ?? null
+  return (data as SharedUserProfileRow | null) ?? null
+}
+
+async function loadCatequeticoAccess(userId: string) {
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('user_app_access')
+    .select('user_id,role,ativo')
+    .eq('user_id', userId)
+    .eq('app_code', 'catequetico')
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data as UserAppAccessRow | null) ?? null
 }
 
 function buildEditorUser(input: {
   id: string
   email: string
-  profile?: UserProfileRow | null
+  profile?: SharedUserProfileRow | null
+  access?: UserAppAccessRow | null
   fallbackName?: string
 }): EditorUser {
   return {
     id: input.id,
     email: input.email,
     name: input.profile?.nome?.trim() || input.fallbackName || input.email.split('@')[0] || 'Editor',
-    role: normalizeRole(input.profile?.role),
-    active: input.profile?.ativo ?? true,
+    role: normalizeRole(input.access?.role),
+    active: Boolean(input.profile?.ativo ?? true) && Boolean(input.access?.ativo ?? false),
     mode: 'supabase',
   }
+}
+
+async function loadCatequeticoUser(input: {
+  id: string
+  email: string
+  fallbackName?: string
+}) {
+  const [profile, access] = await Promise.all([loadProfile(input.id), loadCatequeticoAccess(input.id)])
+
+  if (!profile || !access || !profile.ativo || !access.ativo) {
+    return null
+  }
+
+  return buildEditorUser({
+    id: input.id,
+    email: input.email,
+    profile,
+    access,
+    fallbackName: input.fallbackName,
+  })
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -104,28 +147,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       try {
-        const profile = await loadProfile(session.user.id)
+        const nextUser = await loadCatequeticoUser({
+          id: session.user.id,
+          email,
+          fallbackName: session.user.user_metadata?.name,
+        })
 
         if (!active) return
 
-        setUser(
-          buildEditorUser({
-            id: session.user.id,
-            email,
-            profile,
-            fallbackName: session.user.user_metadata?.name,
-          }),
-        )
+        if (!nextUser) {
+          setUser(null)
+          await supabase.auth.signOut()
+          return
+        }
+
+        setUser(nextUser)
       } catch {
         if (!active) return
-
-        setUser(
-          buildEditorUser({
-            id: session.user.id,
-            email,
-            fallbackName: session.user.user_metadata?.name,
-          }),
-        )
+        setUser(null)
       } finally {
         if (active) {
           setLoading(false)
@@ -141,9 +180,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     }
 
+    const client = supabase
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = client.auth.onAuthStateChange(async (_event, session) => {
       const email = session?.user.email
 
       if (!session?.user.id || !email) {
@@ -154,28 +195,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       try {
-        const profile = await loadProfile(session.user.id)
+        const nextUser = await loadCatequeticoUser({
+          id: session.user.id,
+          email,
+          fallbackName: session.user.user_metadata?.name,
+        })
 
         if (!active) return
 
-        setUser(
-          buildEditorUser({
-            id: session.user.id,
-            email,
-            profile,
-            fallbackName: session.user.user_metadata?.name,
-          }),
-        )
+        if (!nextUser) {
+          setUser(null)
+          await client.auth.signOut()
+          return
+        }
+
+        setUser(nextUser)
       } catch {
         if (!active) return
-
-        setUser(
-          buildEditorUser({
-            id: session.user.id,
-            email,
-            fallbackName: session.user.user_metadata?.name,
-          }),
-        )
+        setUser(null)
       } finally {
         if (active) {
           setLoading(false)
@@ -214,12 +251,34 @@ export function AuthProvider({ children }: PropsWithChildren) {
           )
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const client = supabase
+        const { data, error } = await client.auth.signInWithPassword({
           email,
           password,
         })
 
         if (error) throw new Error(error.message)
+
+        const authUser = data.user
+        const authEmail = authUser?.email
+
+        if (!authUser?.id || !authEmail) {
+          await client.auth.signOut()
+          throw new Error('Nao foi possivel validar o acesso deste usuario no Catequetico.')
+        }
+
+        const nextUser = await loadCatequeticoUser({
+          id: authUser.id,
+          email: authEmail,
+          fallbackName: authUser.user_metadata?.name,
+        })
+
+        if (!nextUser) {
+          await client.auth.signOut()
+          throw new Error('Este usuario nao possui acesso ao Catequetico.')
+        }
+
+        setUser(nextUser)
       },
       async signOut() {
         if (!supabase) {
@@ -228,7 +287,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
           return
         }
 
-        const { error } = await supabase.auth.signOut()
+        const client = supabase
+        const { error } = await client.auth.signOut()
         if (error) throw new Error(error.message)
       },
     }),

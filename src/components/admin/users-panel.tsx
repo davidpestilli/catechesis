@@ -100,13 +100,13 @@ export function UsersPanel() {
   }
 
   async function handleDeleteUser(userId: string, userEmail: string) {
-    if (!window.confirm(`Excluir o usuario ${userEmail}?`)) {
+    if (!window.confirm(`Remover o acesso do usuario ${userEmail} ao Catequetico?`)) {
       return
     }
 
     try {
       await deleteUser.mutateAsync(userId)
-      toast.success('Usuario excluido.')
+      toast.success('Acesso removido.')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Nao foi possivel excluir o usuario.')
     }
@@ -193,7 +193,7 @@ export function UsersPanel() {
           <div>
             <CardTitle>Usuarios cadastrados</CardTitle>
             <CardDescription className="mt-2">
-              Altere o perfil de um usuario existente ou exclua acessos que nao devem mais entrar no painel.
+              Altere o perfil de um usuario do Catequetico ou remova acessos que nao devem mais entrar neste painel.
             </CardDescription>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -280,7 +280,7 @@ export function UsersPanel() {
                       disabled={isCurrentUser || deleteUser.isPending}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir
+                      Remover acesso
                     </Button>
                   </div>
 

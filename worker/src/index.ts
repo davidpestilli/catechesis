@@ -24,11 +24,12 @@ type CommentContentType = 'article' | 'encounter'
 type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
 type UserRole = 'admin' | 'catequista'
+const CATEQUETICO_APP_CODE = 'catequetico'
 
 interface AuthUser {
   id: string
   email?: string
-  profile?: UserRow | null
+  profile?: CatequeticoUserRow | null
 }
 
 interface CommentRow {
@@ -132,21 +133,47 @@ interface ZeptoMailRpcResponse {
   sqlstate?: string
 }
 
-interface UserRow {
+interface SharedUserRow {
   id: string
   email: string
   nome: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface SharedUserRowRaw {
+  id: string
+  email: string
+  nome: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface UserAppAccessRow {
+  user_id: string
+  app_code: string
   role: UserRole
   ativo: boolean
   created_at: string
   updated_at: string
 }
 
-interface UserRowRaw {
+interface UserAppAccessRowRaw {
+  user_id: string
+  app_code: string
+  role: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface CatequeticoUserRow {
   id: string
   email: string
   nome: string
-  role: string
+  role: UserRole
   ativo: boolean
   created_at: string
   updated_at: string
@@ -310,7 +337,7 @@ async function getAuthenticatedUser(request: Request, env: GatewayEnv): Promise<
   }
 
   const payload = (await response.json()) as { id: string; email?: string }
-  const profile = await getUserById(env, payload.id)
+  const profile = await getCatequeticoUserById(env, payload.id)
 
   return {
     id: payload.id,
@@ -319,10 +346,10 @@ async function getAuthenticatedUser(request: Request, env: GatewayEnv): Promise<
   }
 }
 
-async function getUserById(env: GatewayEnv, userId: string) {
-  const { response, data } = await supabaseRest<UserRowRaw[]>(
+async function getSharedUserById(env: GatewayEnv, userId: string) {
+  const { response, data } = await supabaseRest<SharedUserRowRaw[]>(
     env,
-    `/users?select=id,email,nome,role,ativo,created_at,updated_at&id=eq.${userId}&limit=1`,
+    `/users?select=id,email,nome,ativo,created_at,updated_at&id=eq.${userId}&limit=1`,
     { method: 'GET' },
   )
 
@@ -330,21 +357,22 @@ async function getUserById(env: GatewayEnv, userId: string) {
     return null
   }
 
-  return mapUserRow(data[0])
+  return mapSharedUserRow(data[0])
 }
 
-async function listUsers(env: GatewayEnv) {
-  const { response, data } = await supabaseRest<UserRowRaw[]>(
+async function getSharedUserByEmail(env: GatewayEnv, email: string) {
+  const normalizedEmail = email.trim().toLowerCase()
+  const { response, data } = await supabaseRest<SharedUserRowRaw[]>(
     env,
-    '/users?select=id,email,nome,role,ativo,created_at,updated_at&order=created_at.desc',
+    `/users?select=id,email,nome,ativo,created_at,updated_at&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`,
     { method: 'GET' },
   )
 
-  if (!response.ok || !Array.isArray(data)) {
-    throw new Error('Nao foi possivel carregar os usuarios.')
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    return null
   }
 
-  return data.map(mapUserRow)
+  return mapSharedUserRow(data[0])
 }
 
 function normalizeUserRole(value?: string | null): UserRole | null {
@@ -368,18 +396,115 @@ function isAdminUser(user: AuthUser | null) {
   return user?.profile?.ativo === true && user.profile.role === 'admin'
 }
 
-function mapUserRow(row: UserRowRaw): UserRow {
+function mapSharedUserRow(row: SharedUserRowRaw): SharedUserRow {
+  return row
+}
+
+function mapUserAppAccessRow(row: UserAppAccessRowRaw): UserAppAccessRow {
   return {
     ...row,
     role: normalizeUserRole(row.role) ?? 'catequista',
   }
 }
 
-async function upsertUserProfile(
+function mapCatequeticoUser(input: {
+  sharedUser: SharedUserRow
+  access: UserAppAccessRow
+}): CatequeticoUserRow {
+  return {
+    id: input.sharedUser.id,
+    email: input.sharedUser.email,
+    nome: input.sharedUser.nome,
+    role: input.access.role,
+    ativo: input.sharedUser.ativo && input.access.ativo,
+    created_at: input.access.created_at,
+    updated_at: input.access.updated_at,
+  }
+}
+
+async function getUserAppAccessByUserId(env: GatewayEnv, userId: string) {
+  const { response, data } = await supabaseRest<UserAppAccessRowRaw[]>(
+    env,
+    `/user_app_access?select=user_id,app_code,role,ativo,created_at,updated_at&app_code=eq.${CATEQUETICO_APP_CODE}&user_id=eq.${userId}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    return null
+  }
+
+  return mapUserAppAccessRow(data[0])
+}
+
+async function getCatequeticoUserById(env: GatewayEnv, userId: string) {
+  const [sharedUser, access] = await Promise.all([
+    getSharedUserById(env, userId),
+    getUserAppAccessByUserId(env, userId),
+  ])
+
+  if (!sharedUser || !access) {
+    return null
+  }
+
+  return mapCatequeticoUser({
+    sharedUser,
+    access,
+  })
+}
+
+async function listCatequeticoUsers(env: GatewayEnv) {
+  const { response, data } = await supabaseRest<UserAppAccessRowRaw[]>(
+    env,
+    `/user_app_access?select=user_id,app_code,role,ativo,created_at,updated_at&app_code=eq.${CATEQUETICO_APP_CODE}&order=created_at.desc`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error('Nao foi possivel carregar os usuarios do Catequetico.')
+  }
+
+  const accessRows = data.map(mapUserAppAccessRow)
+
+  if (accessRows.length === 0) {
+    return []
+  }
+
+  const userIds = accessRows.map((row) => row.user_id)
+  const { response: usersResponse, data: usersData } = await supabaseRest<SharedUserRowRaw[]>(
+    env,
+    `/users?select=id,email,nome,ativo,created_at,updated_at&id=in.(${userIds.join(',')})`,
+    { method: 'GET' },
+  )
+
+  if (!usersResponse.ok || !Array.isArray(usersData)) {
+    throw new Error('Nao foi possivel carregar os perfis compartilhados dos usuarios.')
+  }
+
+  const sharedUsersById = new Map(
+    usersData.map((row) => {
+      const sharedUser = mapSharedUserRow(row)
+      return [sharedUser.id, sharedUser] as const
+    }),
+  )
+
+  return accessRows.flatMap((access) => {
+    const sharedUser = sharedUsersById.get(access.user_id)
+    if (!sharedUser) return []
+
+    return [
+      mapCatequeticoUser({
+        sharedUser,
+        access,
+      }),
+    ]
+  })
+}
+
+async function upsertSharedUserProfile(
   env: GatewayEnv,
-  input: { id: string; email: string; name: string; role: UserRole; active?: boolean },
+  input: { id: string; email: string; name: string; active?: boolean },
 ) {
-  const { response, data } = await supabaseRest<UserRowRaw[]>(
+  const { response, data } = await supabaseRest<SharedUserRowRaw[]>(
     env,
     '/users?on_conflict=id',
     {
@@ -391,7 +516,6 @@ async function upsertUserProfile(
         id: input.id,
         email: input.email.trim().toLowerCase(),
         nome: input.name.trim(),
-        role: input.role,
         ativo: input.active ?? true,
       }),
     },
@@ -401,22 +525,54 @@ async function upsertUserProfile(
     throw new Error('Nao foi possivel salvar o perfil do usuario.')
   }
 
-  return mapUserRow(data[0])
+  return mapSharedUserRow(data[0])
 }
 
-async function deleteUserProfile(env: GatewayEnv, userId: string) {
-  await supabaseRest(
+async function upsertUserAppAccess(
+  env: GatewayEnv,
+  input: { userId: string; role: UserRole; active?: boolean },
+) {
+  const { response, data } = await supabaseRest<UserAppAccessRowRaw[]>(
     env,
-    `/users?id=eq.${userId}`,
+    '/user_app_access?on_conflict=user_id,app_code',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        user_id: input.userId,
+        app_code: CATEQUETICO_APP_CODE,
+        role: input.role,
+        ativo: input.active ?? true,
+      }),
+    },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    throw new Error('Nao foi possivel salvar o acesso do usuario ao Catequetico.')
+  }
+
+  return mapUserAppAccessRow(data[0])
+}
+
+async function deleteUserAppAccess(env: GatewayEnv, userId: string) {
+  const { response } = await supabaseRest(
+    env,
+    `/user_app_access?app_code=eq.${CATEQUETICO_APP_CODE}&user_id=eq.${userId}`,
     {
       method: 'DELETE',
     },
   )
+
+  if (!response.ok) {
+    throw new Error('Nao foi possivel remover o acesso do usuario ao Catequetico.')
+  }
 }
 
 async function createAuthUser(
   env: GatewayEnv,
-  input: { email: string; password: string; role: UserRole; name: string },
+  input: { email: string; password: string; name: string },
 ) {
   const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
@@ -431,7 +587,6 @@ async function createAuthUser(
       email_confirm: true,
       user_metadata: {
         name: input.name,
-        role: input.role,
       },
     }),
   })
@@ -448,7 +603,7 @@ async function createAuthUser(
 async function updateAuthUser(
   env: GatewayEnv,
   userId: string,
-  input: { role: UserRole; name: string },
+  input: { name: string },
 ) {
   const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
     method: 'PUT',
@@ -460,7 +615,6 @@ async function updateAuthUser(
     body: JSON.stringify({
       user_metadata: {
         name: input.name,
-        role: input.role,
       },
     }),
   })
@@ -1145,7 +1299,7 @@ async function handleListUsers(request: Request, env: GatewayEnv, headers: Recor
   }
 
   try {
-    const users = await listUsers(env)
+    const users = await listCatequeticoUsers(env)
     return json({ users }, 200, headers)
   } catch (error) {
     return json(
@@ -1188,24 +1342,50 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
     return json({ error: 'Perfil invalido.' }, 400, headers)
   }
 
+  const existingSharedUser = await getSharedUserByEmail(env, email)
+
+  if (existingSharedUser) {
+    const existingAccess = await getUserAppAccessByUserId(env, existingSharedUser.id)
+
+    if (existingAccess) {
+      return json({ error: 'Este email ja possui acesso ao Catequetico.' }, 400, headers)
+    }
+
+    return json(
+      {
+        error:
+          'Este email ja pertence a um usuario existente em outro sistema do mesmo Supabase. Para evitar sobrescrever uma conta compartilhada, use outro email.',
+      },
+      400,
+      headers,
+    )
+  }
+
   let createdUserId: string | null = null
 
   try {
     const authUserRecord = await createAuthUser(env, {
       email,
       password,
-      role,
       name,
     })
 
     createdUserId = authUserRecord.id
 
-    const profile = await upsertUserProfile(env, {
+    const sharedUser = await upsertSharedUserProfile(env, {
       id: authUserRecord.id,
       email,
       name,
+      active: true,
+    })
+    const access = await upsertUserAppAccess(env, {
+      userId: authUserRecord.id,
       role,
       active: true,
+    })
+    const profile = mapCatequeticoUser({
+      sharedUser,
+      access,
     })
 
     let credentialsEmailQueued = false
@@ -1237,7 +1417,6 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
     if (createdUserId) {
       try {
         await deleteAuthUser(env, createdUserId)
-        await deleteUserProfile(env, createdUserId)
       } catch {
         // O rollback e melhor esforço; o erro principal continua sendo devolvido.
       }
@@ -1279,10 +1458,10 @@ async function handleUpdateUser(
     return json({ error: 'Corpo invalido.' }, 400, headers)
   }
 
-  const currentUser = await getUserById(env, userId)
+  const currentUser = await getCatequeticoUserById(env, userId)
 
   if (!currentUser) {
-    return json({ error: 'Usuario nao encontrado.' }, 404, headers)
+    return json({ error: 'Usuario do Catequetico nao encontrado.' }, 404, headers)
   }
 
   const role = normalizeUserRole(body.role)
@@ -1294,13 +1473,21 @@ async function handleUpdateUser(
   const name = buildDisplayName(currentUser.email, body.name ?? currentUser.nome)
 
   try {
-    await updateAuthUser(env, userId, { role, name })
-    const updatedUser = await upsertUserProfile(env, {
+    await updateAuthUser(env, userId, { name })
+    const sharedUser = await upsertSharedUserProfile(env, {
       id: userId,
       email: currentUser.email,
       name,
+      active: currentUser.ativo,
+    })
+    const access = await upsertUserAppAccess(env, {
+      userId,
       role,
       active: currentUser.ativo,
+    })
+    const updatedUser = mapCatequeticoUser({
+      sharedUser,
+      access,
     })
 
     return json({ user: updatedUser }, 200, headers)
@@ -1335,15 +1522,14 @@ async function handleDeleteUser(
     return json({ error: 'Nao e permitido excluir o proprio usuario.' }, 400, headers)
   }
 
-  const currentUser = await getUserById(env, userId)
+  const currentUser = await getCatequeticoUserById(env, userId)
 
   if (!currentUser) {
-    return json({ error: 'Usuario nao encontrado.' }, 404, headers)
+    return json({ error: 'Usuario do Catequetico nao encontrado.' }, 404, headers)
   }
 
   try {
-    await deleteAuthUser(env, userId)
-    await deleteUserProfile(env, userId)
+    await deleteUserAppAccess(env, userId)
     return json({ ok: true }, 200, headers)
   } catch (error) {
     return json(
