@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DiversosPanel } from '@/components/admin/diversos-panel'
+import { UsersPanel } from '@/components/admin/users-panel'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
@@ -29,6 +30,7 @@ import type {
   MaterialCategory,
   SiteSettings,
 } from '@/types/content'
+import { useAuth } from '@/providers/auth-provider'
 
 const adminSelectClassName =
   'h-11 w-full rounded-2xl border border-input bg-white/90 px-4 text-sm text-stone-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -139,6 +141,7 @@ function emptyLandingSlide() {
 }
 
 export function AdminDashboardPage() {
+  const { user } = useAuth()
   const { data } = useCMSState()
   const saveGroup = useSaveGroup()
   const saveEncounter = useSaveEncounter()
@@ -378,6 +381,7 @@ export function AdminDashboardPage() {
           <TabsTrigger className="shrink-0" value="assets">Materiais</TabsTrigger>
           <TabsTrigger className="shrink-0" value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger className="shrink-0" value="slideshow">Slideshow</TabsTrigger>
+          {user?.role === 'admin' ? <TabsTrigger className="shrink-0" value="users">Usuarios</TabsTrigger> : null}
           <TabsTrigger className="shrink-0" value="misc">Diversos</TabsTrigger>
         </TabsList>
 
@@ -1175,6 +1179,12 @@ export function AdminDashboardPage() {
             </div>
           </Card>
         </TabsContent>
+
+        {user?.role === 'admin' ? (
+          <TabsContent value="users">
+            <UsersPanel />
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="misc">
           <DiversosPanel />

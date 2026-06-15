@@ -3,6 +3,8 @@ import {
   buildCommentNotificationSubject,
   buildThreadSubscriptionHtml,
   buildThreadSubscriptionSubject,
+  buildUserCredentialsHtml,
+  buildUserCredentialsSubject,
 } from './comment-email'
 
 interface GatewayEnv {
@@ -19,12 +21,14 @@ interface GatewayEnv {
 }
 
 type CommentContentType = 'article' | 'encounter'
-type CommentAuthorKind = 'guest' | 'admin'
+type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
+type UserRole = 'admin' | 'catequista'
 
 interface AuthUser {
   id: string
   email?: string
+  profile?: UserRow | null
 }
 
 interface CommentRow {
@@ -128,13 +132,56 @@ interface ZeptoMailRpcResponse {
   sqlstate?: string
 }
 
+interface UserRow {
+  id: string
+  email: string
+  nome: string
+  role: UserRole
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface UserRowRaw {
+  id: string
+  email: string
+  nome: string
+  role: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface AdminUserResponse {
+  user?: {
+    id: string
+    email?: string
+    user_metadata?: Record<string, unknown>
+  }
+  error?: {
+    message?: string
+  }
+}
+
+interface CreateUserRequestBody {
+  email?: string
+  password?: string
+  role?: string
+  name?: string
+}
+
+interface UpdateUserRequestBody {
+  role?: string
+  name?: string
+}
+
 function corsHeaders(origin: string | null, env: GatewayEnv) {
   const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map((item) => item.trim())
   const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] ?? '*'
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   }
 }
@@ -263,10 +310,221 @@ async function getAuthenticatedUser(request: Request, env: GatewayEnv): Promise<
   }
 
   const payload = (await response.json()) as { id: string; email?: string }
+  const profile = await getUserById(env, payload.id)
+
   return {
     id: payload.id,
     email: payload.email,
+    profile,
   }
+}
+
+async function getUserById(env: GatewayEnv, userId: string) {
+  const { response, data } = await supabaseRest<UserRowRaw[]>(
+    env,
+    `/users?select=id,email,nome,role,ativo,created_at,updated_at&id=eq.${userId}&limit=1`,
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    return null
+  }
+
+  return mapUserRow(data[0])
+}
+
+async function listUsers(env: GatewayEnv) {
+  const { response, data } = await supabaseRest<UserRowRaw[]>(
+    env,
+    '/users?select=id,email,nome,role,ativo,created_at,updated_at&order=created_at.desc',
+    { method: 'GET' },
+  )
+
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error('Nao foi possivel carregar os usuarios.')
+  }
+
+  return data.map(mapUserRow)
+}
+
+function normalizeUserRole(value?: string | null): UserRole | null {
+  if (value === 'admin') return 'admin'
+  if (value === 'catequista') return 'catequista'
+  if (value === 'user') return 'catequista'
+  return null
+}
+
+function buildDisplayName(email: string, name?: string | null) {
+  const normalizedName = name?.trim() ?? ''
+
+  if (normalizedName) {
+    return normalizedName
+  }
+
+  return email.trim().split('@')[0] || 'Catequista'
+}
+
+function isAdminUser(user: AuthUser | null) {
+  return user?.profile?.ativo === true && user.profile.role === 'admin'
+}
+
+function mapUserRow(row: UserRowRaw): UserRow {
+  return {
+    ...row,
+    role: normalizeUserRole(row.role) ?? 'catequista',
+  }
+}
+
+async function upsertUserProfile(
+  env: GatewayEnv,
+  input: { id: string; email: string; name: string; role: UserRole; active?: boolean },
+) {
+  const { response, data } = await supabaseRest<UserRowRaw[]>(
+    env,
+    '/users?on_conflict=id',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: input.id,
+        email: input.email.trim().toLowerCase(),
+        nome: input.name.trim(),
+        role: input.role,
+        ativo: input.active ?? true,
+      }),
+    },
+  )
+
+  if (!response.ok || !Array.isArray(data) || data.length === 0) {
+    throw new Error('Nao foi possivel salvar o perfil do usuario.')
+  }
+
+  return mapUserRow(data[0])
+}
+
+async function deleteUserProfile(env: GatewayEnv, userId: string) {
+  await supabaseRest(
+    env,
+    `/users?id=eq.${userId}`,
+    {
+      method: 'DELETE',
+    },
+  )
+}
+
+async function createAuthUser(
+  env: GatewayEnv,
+  input: { email: string; password: string; role: UserRole; name: string },
+) {
+  const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({
+      email: input.email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: {
+        name: input.name,
+        role: input.role,
+      },
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
+
+  if (!response.ok || !payload?.user?.id) {
+    throw new Error(payload?.error?.message ?? 'Nao foi possivel criar o usuario no Auth.')
+  }
+
+  return payload.user
+}
+
+async function updateAuthUser(
+  env: GatewayEnv,
+  userId: string,
+  input: { role: UserRole; name: string },
+) {
+  const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({
+      user_metadata: {
+        name: input.name,
+        role: input.role,
+      },
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
+
+  if (!response.ok || !payload?.user?.id) {
+    throw new Error(payload?.error?.message ?? 'Nao foi possivel atualizar o usuario no Auth.')
+  }
+
+  return payload.user
+}
+
+async function deleteAuthUser(env: GatewayEnv, userId: string) {
+  const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
+    throw new Error(payload?.error?.message ?? 'Nao foi possivel excluir o usuario.')
+  }
+}
+
+async function sendUserCredentialsEmail(
+  env: GatewayEnv,
+  input: { email: string; password: string; role: UserRole; baseUrl: string },
+) {
+  const loginUrl = `${normalizeBaseUrl(env.APP_BASE_URL) || input.baseUrl}/#/login`
+  const fromEmail = env.ZEPTO_MAIL_FROM_EMAIL?.trim() || 'noreply@catequetico.org'
+  const fromName = env.ZEPTO_MAIL_FROM_NAME?.trim() || getSiteName(env)
+  const profileLabel = input.role === 'admin' ? 'Admin' : 'Catequista'
+  const subject = buildUserCredentialsSubject({
+    loginUrl,
+    profileLabel,
+    recipientEmail: input.email,
+    recipientPassword: input.password,
+    siteName: getSiteName(env),
+  })
+  const bodyHtml = buildUserCredentialsHtml({
+    loginUrl,
+    profileLabel,
+    recipientEmail: input.email,
+    recipientPassword: input.password,
+    siteName: getSiteName(env),
+  })
+
+  const { response, data } = await supabaseRpc<ZeptoMailRpcResponse>(env, 'enviar_email_zeptomail', {
+    p_destinatario: input.email,
+    p_assunto: subject,
+    p_corpo_html: bodyHtml,
+    p_remetente_email: fromEmail,
+    p_remetente_nome: fromName,
+  })
+
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.error ?? `RPC retornou status ${response.status}.`)
+  }
+
+  return data.request_id ?? null
 }
 
 async function ensureContentExists(env: GatewayEnv, contentType: CommentContentType, contentId: string) {
@@ -705,7 +963,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   const commentBody = typeof body.body === 'string' ? body.body.trim() : ''
   const notifyReplies = Boolean(body.notifyReplies)
   const authUser = await getAuthenticatedUser(request, env)
-  const isAdmin = Boolean(authUser)
+  const isAuthenticatedAuthor = Boolean(authUser)
 
   if (!contentType || !isUuid(contentId)) {
     return json({ error: 'Conteudo invalido.' }, 400, headers)
@@ -719,11 +977,11 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
     return json({ error: 'Escreva um comentario.' }, 400, headers)
   }
 
-  if (!isAdmin && authorEmail && !isValidEmail(authorEmail)) {
+  if (!isAuthenticatedAuthor && authorEmail && !isValidEmail(authorEmail)) {
     return json({ error: 'Informe um email valido.' }, 400, headers)
   }
 
-  if (!isAdmin && notifyReplies && !authorEmail) {
+  if (!isAuthenticatedAuthor && notifyReplies && !authorEmail) {
     return json({ error: 'Informe um email para acompanhar a conversa.' }, 400, headers)
   }
 
@@ -765,12 +1023,12 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
       content_id: contentId,
       parent_comment_id: parentComment?.id ?? null,
       root_comment_id: rootCommentId,
-      author_kind: isAdmin ? 'admin' : 'guest',
+      author_kind: isAuthenticatedAuthor ? 'catequista' : 'guest',
       admin_user_id: authUser?.id ?? null,
       author_name: authorName,
-      author_email: isAdmin ? null : authorEmail || null,
+      author_email: isAuthenticatedAuthor ? null : authorEmail || null,
       body: commentBody,
-      notify_replies: isAdmin ? false : notifyReplies,
+      notify_replies: isAuthenticatedAuthor ? false : notifyReplies,
     })
 
     const events: CommentEventInsert[] = [
@@ -786,7 +1044,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
     ]
     let createdOptInSubscription: CommentSubscriptionRow | null = null
 
-    if (!isAdmin && notifyReplies && authorEmail) {
+    if (!isAuthenticatedAuthor && notifyReplies && authorEmail) {
       const subscription = await ensureSubscription(env, {
         rootCommentId,
         email: authorEmail,
@@ -872,6 +1130,225 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
     return json(
       {
         error: error instanceof Error ? error.message : 'Nao foi possivel publicar o comentario.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
+async function handleListUsers(request: Request, env: GatewayEnv, headers: Record<string, string>) {
+  const authUser = await getAuthenticatedUser(request, env)
+
+  if (!isAdminUser(authUser)) {
+    return json({ error: 'Apenas administradores podem acessar usuarios.' }, 403, headers)
+  }
+
+  try {
+    const users = await listUsers(env)
+    return json({ users }, 200, headers)
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel carregar os usuarios.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
+async function handleCreateUser(request: Request, env: GatewayEnv, headers: Record<string, string>) {
+  const authUser = await getAuthenticatedUser(request, env)
+
+  if (!isAdminUser(authUser)) {
+    return json({ error: 'Apenas administradores podem criar usuarios.' }, 403, headers)
+  }
+
+  const body = await parseJson<CreateUserRequestBody>(request)
+
+  if (!body) {
+    return json({ error: 'Corpo invalido.' }, 400, headers)
+  }
+
+  const email = body.email?.trim().toLowerCase() ?? ''
+  const password = body.password?.trim() ?? ''
+  const role = normalizeUserRole(body.role)
+  const name = buildDisplayName(email, body.name)
+
+  if (!isValidEmail(email)) {
+    return json({ error: 'Informe um email valido.' }, 400, headers)
+  }
+
+  if (password.length < 6) {
+    return json({ error: 'A senha precisa ter pelo menos 6 caracteres.' }, 400, headers)
+  }
+
+  if (!role) {
+    return json({ error: 'Perfil invalido.' }, 400, headers)
+  }
+
+  let createdUserId: string | null = null
+
+  try {
+    const authUserRecord = await createAuthUser(env, {
+      email,
+      password,
+      role,
+      name,
+    })
+
+    createdUserId = authUserRecord.id
+
+    const profile = await upsertUserProfile(env, {
+      id: authUserRecord.id,
+      email,
+      name,
+      role,
+      active: true,
+    })
+
+    let credentialsEmailQueued = false
+    let credentialsEmailError: string | null = null
+
+    try {
+      await sendUserCredentialsEmail(env, {
+        email,
+        password,
+        role,
+        baseUrl: new URL(request.url).origin,
+      })
+      credentialsEmailQueued = true
+    } catch (error) {
+      credentialsEmailError =
+        error instanceof Error ? error.message : 'Nao foi possivel enviar o email de credenciais.'
+    }
+
+    return json(
+      {
+        user: profile,
+        credentialsEmailQueued,
+        credentialsEmailError,
+      },
+      201,
+      headers,
+    )
+  } catch (error) {
+    if (createdUserId) {
+      try {
+        await deleteAuthUser(env, createdUserId)
+        await deleteUserProfile(env, createdUserId)
+      } catch {
+        // O rollback e melhor esforço; o erro principal continua sendo devolvido.
+      }
+    }
+
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel criar o usuario.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
+async function handleUpdateUser(
+  request: Request,
+  env: GatewayEnv,
+  headers: Record<string, string>,
+  userId: string,
+) {
+  const authUser = await getAuthenticatedUser(request, env)
+
+  if (!isAdminUser(authUser)) {
+    return json({ error: 'Apenas administradores podem atualizar usuarios.' }, 403, headers)
+  }
+
+  if (!isUuid(userId)) {
+    return json({ error: 'Usuario invalido.' }, 400, headers)
+  }
+
+  if (authUser?.id === userId) {
+    return json({ error: 'Nao e permitido alterar o proprio perfil por esta tela.' }, 400, headers)
+  }
+
+  const body = await parseJson<UpdateUserRequestBody>(request)
+
+  if (!body) {
+    return json({ error: 'Corpo invalido.' }, 400, headers)
+  }
+
+  const currentUser = await getUserById(env, userId)
+
+  if (!currentUser) {
+    return json({ error: 'Usuario nao encontrado.' }, 404, headers)
+  }
+
+  const role = normalizeUserRole(body.role)
+
+  if (!role) {
+    return json({ error: 'Perfil invalido.' }, 400, headers)
+  }
+
+  const name = buildDisplayName(currentUser.email, body.name ?? currentUser.nome)
+
+  try {
+    await updateAuthUser(env, userId, { role, name })
+    const updatedUser = await upsertUserProfile(env, {
+      id: userId,
+      email: currentUser.email,
+      name,
+      role,
+      active: currentUser.ativo,
+    })
+
+    return json({ user: updatedUser }, 200, headers)
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel atualizar o usuario.',
+      },
+      400,
+      headers,
+    )
+  }
+}
+
+async function handleDeleteUser(
+  request: Request,
+  env: GatewayEnv,
+  headers: Record<string, string>,
+  userId: string,
+) {
+  const authUser = await getAuthenticatedUser(request, env)
+
+  if (!isAdminUser(authUser)) {
+    return json({ error: 'Apenas administradores podem excluir usuarios.' }, 403, headers)
+  }
+
+  if (!isUuid(userId)) {
+    return json({ error: 'Usuario invalido.' }, 400, headers)
+  }
+
+  if (authUser?.id === userId) {
+    return json({ error: 'Nao e permitido excluir o proprio usuario.' }, 400, headers)
+  }
+
+  const currentUser = await getUserById(env, userId)
+
+  if (!currentUser) {
+    return json({ error: 'Usuario nao encontrado.' }, 404, headers)
+  }
+
+  try {
+    await deleteAuthUser(env, userId)
+    await deleteUserProfile(env, userId)
+    return json({ ok: true }, 200, headers)
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Nao foi possivel excluir o usuario.',
       },
       400,
       headers,
@@ -971,6 +1448,26 @@ export default {
 
     if (url.pathname === '/comments/unsubscribe' && request.method === 'GET') {
       return handleUnsubscribe(request, runtimeEnv, headers)
+    }
+
+    if (url.pathname === '/admin/users' && request.method === 'GET') {
+      return handleListUsers(request, runtimeEnv, headers)
+    }
+
+    if (url.pathname === '/admin/users' && request.method === 'POST') {
+      return handleCreateUser(request, runtimeEnv, headers)
+    }
+
+    if (url.pathname.startsWith('/admin/users/')) {
+      const userId = url.pathname.slice('/admin/users/'.length)
+
+      if (request.method === 'PATCH') {
+        return handleUpdateUser(request, runtimeEnv, headers, userId)
+      }
+
+      if (request.method === 'DELETE') {
+        return handleDeleteUser(request, runtimeEnv, headers, userId)
+      }
     }
 
     if (url.pathname === '/media') {

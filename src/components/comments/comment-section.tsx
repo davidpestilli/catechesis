@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { ChevronDown, MessageSquare, Reply, ShieldCheck } from 'lucide-react'
+import { ChevronDown, GraduationCap, MessageSquare, Reply } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useComments, useCreateComment } from '@/hooks/use-comments'
@@ -164,7 +164,7 @@ function CommentForm({
         </label>
       ) : (
         <div className="rounded-3xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-stone-700">
-          Comentario administrativo. Seu email nao e exigido aqui; as notificacoes do admin sao tratadas pelo sistema.
+          Comentario de usuario autenticado. Seu email nao e exigido aqui.
         </div>
       )}
 
@@ -183,24 +183,24 @@ function CommentForm({
 }
 
 function CommentCard({ comment, children }: { comment: Comment; children?: React.ReactNode }) {
-  const isAdmin = comment.authorKind === 'admin'
+  const isCatequista = comment.authorKind !== 'guest'
 
   return (
     <article
       id={`comment-${comment.id}`}
       className={[
         'rounded-[28px] border p-5 shadow-[0_18px_45px_rgba(74,61,35,0.07)]',
-        isAdmin
+        isCatequista
           ? 'border-primary/20 bg-[linear-gradient(180deg,rgba(231,241,233,0.96),rgba(255,255,255,0.98))]'
           : 'border-stone-200 bg-white/90',
       ].join(' ')}
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-semibold text-stone-900">{comment.authorName}</span>
-        {isAdmin ? (
+        {isCatequista ? (
           <Badge className="bg-primary text-primary-foreground">
-            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-            Admin
+            <GraduationCap className="mr-1 h-3.5 w-3.5" />
+            Catequista
           </Badge>
         ) : null}
         <span className="text-xs uppercase tracking-[0.18em] text-stone-500">

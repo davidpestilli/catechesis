@@ -4,7 +4,8 @@ export type MaterialCategory = 'video' | 'image' | 'text' | 'website' | 'book'
 export type LandingImageMotion = 'drift-a' | 'drift-b' | 'drift-c'
 export type ArticleCategory = 'general' | 'saints-life'
 export type CommentContentType = 'article' | 'encounter'
-export type CommentAuthorKind = 'guest' | 'admin'
+export type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
+export type UserRole = 'admin' | 'catequista'
 
 export interface EncounterAsset {
   id: string
@@ -114,9 +115,22 @@ export interface CMSState {
 }
 
 export interface EditorUser {
+  id: string
   email: string
   name: string
+  role: UserRole
+  active: boolean
   mode: 'demo' | 'supabase'
+}
+
+export interface ManagedUser {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+  active: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Comment {

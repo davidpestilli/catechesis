@@ -7,11 +7,23 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { EditorUser } from '@/types/content'
+import type { EditorUser, UserRole } from '@/types/content'
 
 const DEMO_EMAIL = 'demo@catechesis.local'
 const DEMO_PASSWORD = 'catechesis123'
 const DEMO_STORAGE_KEY = 'catechesis-demo-session'
+
+interface UserProfileRow {
+  id: string
+  email: string
+  nome: string
+  role: string
+  ativo: boolean
+}
+
+function normalizeRole(role?: string | null): UserRole {
+  return role === 'admin' ? 'admin' : 'catequista'
+}
 
 interface AuthContextValue {
   user: EditorUser | null
@@ -23,68 +35,175 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+async function loadProfile(userId: string) {
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id,email,nome,role,ativo')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data as UserProfileRow | null) ?? null
+}
+
+function buildEditorUser(input: {
+  id: string
+  email: string
+  profile?: UserProfileRow | null
+  fallbackName?: string
+}): EditorUser {
+  return {
+    id: input.id,
+    email: input.email,
+    name: input.profile?.nome?.trim() || input.fallbackName || input.email.split('@')[0] || 'Editor',
+    role: normalizeRole(input.profile?.role),
+    active: input.profile?.ativo ?? true,
+    mode: 'supabase',
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<EditorUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!supabase) {
-      const demoSession = sessionStorage.getItem(DEMO_STORAGE_KEY)
-      if (demoSession === 'ok') {
-        setUser({
-          email: DEMO_EMAIL,
-          name: 'Editor Demo',
-          mode: 'demo',
-        })
-      }
-      setLoading(false)
-      return
-    }
+    let active = true
 
-    supabase.auth.getSession().then(({ data }) => {
+    async function syncSessionUser() {
+      if (!supabase) {
+        const demoSession = sessionStorage.getItem(DEMO_STORAGE_KEY)
+        if (demoSession === 'ok') {
+          setUser({
+            id: 'demo-user',
+            email: DEMO_EMAIL,
+            name: 'Editor Demo',
+            role: 'admin',
+            active: true,
+            mode: 'demo',
+          })
+        }
+        setLoading(false)
+        return
+      }
+
+      const { data } = await supabase.auth.getSession()
       const session = data.session
       const email = session?.user.email
-      if (email) {
-        setUser({
-          email,
-          name: session?.user.user_metadata?.name ?? 'Editor',
-          mode: 'supabase',
-        })
+
+      if (!active) return
+
+      if (!session?.user.id || !email) {
+        setUser(null)
+        setLoading(false)
+        return
       }
-      setLoading(false)
-    })
+
+      try {
+        const profile = await loadProfile(session.user.id)
+
+        if (!active) return
+
+        setUser(
+          buildEditorUser({
+            id: session.user.id,
+            email,
+            profile,
+            fallbackName: session.user.user_metadata?.name,
+          }),
+        )
+      } catch {
+        if (!active) return
+
+        setUser(
+          buildEditorUser({
+            id: session.user.id,
+            email,
+            fallbackName: session.user.user_metadata?.name,
+          }),
+        )
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void syncSessionUser()
+
+    if (!supabase) {
+      return () => {
+        active = false
+      }
+    }
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const email = session?.user.email
-      setUser(
-        email
-          ? {
-              email,
-              name: session.user.user_metadata?.name ?? 'Editor',
-              mode: 'supabase',
-            }
-          : null,
-      )
-      setLoading(false)
+
+      if (!session?.user.id || !email) {
+        if (!active) return
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const profile = await loadProfile(session.user.id)
+
+        if (!active) return
+
+        setUser(
+          buildEditorUser({
+            id: session.user.id,
+            email,
+            profile,
+            fallbackName: session.user.user_metadata?.name,
+          }),
+        )
+      } catch {
+        if (!active) return
+
+        setUser(
+          buildEditorUser({
+            id: session.user.id,
+            email,
+            fallbackName: session.user.user_metadata?.name,
+          }),
+        )
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user?.active),
       async signIn(email, password) {
         if (!supabase) {
           if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
             sessionStorage.setItem(DEMO_STORAGE_KEY, 'ok')
             setUser({
+              id: 'demo-user',
               email: DEMO_EMAIL,
               name: 'Editor Demo',
+              role: 'admin',
+              active: true,
               mode: 'demo',
             })
             return

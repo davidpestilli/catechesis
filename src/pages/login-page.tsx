@@ -11,8 +11,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signIn } = useAuth()
-  const [email, setEmail] = useState('catechesis.admin@example.com')
-  const [password, setPassword] = useState('Catechesis@2026')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -39,20 +39,19 @@ export function LoginPage() {
           <BookLock className="h-9 w-9 text-amber-300" />
           <CardTitle className="mt-6 text-stone-50">Modo de edicao</CardTitle>
           <CardDescription className="mt-3 text-stone-200">
-            O login libera o painel interno para criar encontros, subir materiais e editar quizzes e
-            artigos.
+            O login libera o painel interno para criar encontros, subir materiais, editar artigos e
+            comentar como catequista.
           </CardDescription>
           <div className="mt-6 rounded-[24px] bg-stone-800/70 p-4 text-sm leading-7 text-stone-200">
-            <p className="font-semibold text-amber-200">Acesso de teste</p>
-            <p>Email: catechesis.admin@example.com</p>
-            <p>Senha: Catechesis@2026</p>
+            Os perfis sao gerenciados no Supabase Auth. Apenas usuarios com perfil <strong>Admin</strong>{' '}
+            podem cadastrar ou excluir outros acessos.
           </div>
         </Card>
 
         <Card>
           <CardTitle>Entrar</CardTitle>
           <CardDescription className="mt-2">
-            Quando o Supabase estiver conectado, esta mesma tela passa a usar auth real.
+            Use o email e a senha recebidos no cadastro.
           </CardDescription>
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">

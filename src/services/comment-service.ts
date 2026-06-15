@@ -16,7 +16,7 @@ interface CommentRow {
   content_id: string
   parent_comment_id: string | null
   root_comment_id: string
-  author_kind: 'guest' | 'admin'
+  author_kind: 'guest' | 'admin' | 'catequista'
   admin_user_id?: string | null
   author_name: string
   author_email?: string | null
