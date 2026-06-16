@@ -123,7 +123,7 @@ export const commentService = {
 
   async createComment(input: CommentDraft): Promise<CreateCommentResult> {
     if (!env.workerUrl) {
-      throw new Error('A URL do Worker nao foi configurada.')
+      throw new Error('A URL do Worker não foi configurada.')
     }
 
     const token = await getAuthToken()
@@ -141,7 +141,7 @@ export const commentService = {
       | null
 
     if (!response.ok || !payload?.comment) {
-      throw new Error(payload?.error ?? 'Nao foi possivel publicar o comentario.')
+      throw new Error(payload?.error ?? 'Não foi possível publicar o comentário.')
     }
 
     return {

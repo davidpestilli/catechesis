@@ -47,12 +47,12 @@ export function UsersPanel() {
     const trimmedName = name.trim()
 
     if (!trimmedEmail) {
-      toast.error('Informe o email do novo usuario.')
+      toast.error('Informe o email do novo usuário.')
       return
     }
 
     if (!trimmedPassword) {
-      toast.error('Informe a senha inicial do novo usuario.')
+      toast.error('Informe a senha inicial do novo usuário.')
       return
     }
 
@@ -70,12 +70,12 @@ export function UsersPanel() {
       setRole('catequista')
 
       if (result.credentialsEmailQueued) {
-        toast.success('Usuario criado e email enviado.')
+        toast.success('Usuário criado e email enviado.')
       } else {
-        toast.warning(result.credentialsEmailError ?? 'Usuario criado, mas o email nao foi enviado.')
+        toast.warning(result.credentialsEmailError ?? 'Usuário criado, mas o email não foi enviado.')
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nao foi possivel criar o usuario.')
+      toast.error(error instanceof Error ? error.message : 'Não foi possível criar o usuário.')
     }
   }
 
@@ -95,12 +95,12 @@ export function UsersPanel() {
       })
       toast.success('Perfil atualizado.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nao foi possivel atualizar o perfil.')
+      toast.error(error instanceof Error ? error.message : 'Não foi possível atualizar o perfil.')
     }
   }
 
   async function handleDeleteUser(userId: string, userEmail: string) {
-    if (!window.confirm(`Remover o acesso do usuario ${userEmail} ao Catequetico?`)) {
+    if (!window.confirm(`Remover o acesso do usuário ${userEmail} ao Catequético?`)) {
       return
     }
 
@@ -108,7 +108,7 @@ export function UsersPanel() {
       await deleteUser.mutateAsync(userId)
       toast.success('Acesso removido.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nao foi possivel excluir o usuario.')
+      toast.error(error instanceof Error ? error.message : 'Não foi possível excluir o usuário.')
     }
   }
 
@@ -121,9 +121,9 @@ export function UsersPanel() {
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Cadastro de usuarios</CardTitle>
+            <CardTitle>Cadastro de usuários</CardTitle>
             <CardDescription className="mt-2">
-              Somente administradores podem criar acessos e definir se o novo perfil sera Admin ou Catequista.
+              Somente administradores podem criar acessos e definir se o novo perfil será Admin ou Catequista.
             </CardDescription>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -177,12 +177,12 @@ export function UsersPanel() {
             onClick={() => void handleCreateUser()}
             disabled={!isAvailable || createUser.isPending}
           >
-            {createUser.isPending ? 'Criando...' : 'Criar usuario'}
+            {createUser.isPending ? 'Criando...' : 'Criar usuário'}
           </Button>
 
           {!isAvailable ? (
             <div className="rounded-[22px] border border-dashed border-stone-300 bg-stone-50/90 px-4 py-3 text-sm text-stone-600">
-              A gestao de usuarios depende do Worker e do Supabase configurados.
+              A gestão de usuários depende do Worker e do Supabase configurados.
             </div>
           ) : null}
         </div>
@@ -191,9 +191,9 @@ export function UsersPanel() {
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Usuarios cadastrados</CardTitle>
+            <CardTitle>Usuários cadastrados</CardTitle>
             <CardDescription className="mt-2">
-              Altere o perfil de um usuario do Catequetico ou remova acessos que nao devem mais entrar neste painel.
+              Altere o perfil de um usuário do Catequético ou remova acessos que não devem mais entrar neste painel.
             </CardDescription>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -205,15 +205,15 @@ export function UsersPanel() {
           {usersQuery.isLoading ? (
             <div className="flex items-center gap-3 rounded-[22px] border border-stone-200 bg-stone-50 px-4 py-4 text-sm text-stone-600">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando usuarios...
+              Carregando usuários...
             </div>
           ) : usersQuery.error ? (
             <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-              Nao foi possivel carregar os usuarios.
+              Não foi possível carregar os usuários.
             </div>
           ) : sortedUsers.length === 0 ? (
             <div className="rounded-[22px] border border-stone-200 bg-stone-50 px-4 py-4 text-sm text-stone-600">
-              Nenhum usuario encontrado.
+              Nenhum usuário encontrado.
             </div>
           ) : (
             sortedUsers.map((managedUser) => {
@@ -286,7 +286,7 @@ export function UsersPanel() {
 
                   {isCurrentUser ? (
                     <p className="mt-3 text-xs text-stone-500">
-                      O proprio usuario logado nao pode ser alterado ou excluido por esta tela.
+                      O próprio usuário logado não pode ser alterado ou excluído por esta tela.
                     </p>
                   ) : null}
                 </div>

@@ -6,9 +6,9 @@ export function NotFoundPage() {
     <section className="mx-auto max-w-3xl px-4 py-16 pb-24">
       <FloatingBackButton to="/" label="Voltar para a home" />
       <Card>
-        <CardTitle>Pagina nao encontrada</CardTitle>
+        <CardTitle>Página não encontrada</CardTitle>
         <CardDescription className="mt-2">
-          O conteudo procurado nao existe ou ainda nao foi publicado no Catequético.
+          O conteúdo procurado não existe ou ainda não foi publicado no Catequético.
         </CardDescription>
       </Card>
     </section>

@@ -27,7 +27,7 @@ interface GatewayEnv {
 type CommentContentType = 'article' | 'encounter'
 type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
-type ArticleCategory = 'general' | 'saints-life'
+type ArticleCategory = 'general' | 'saints-life' | 'biblical'
 type ArticleSubscriptionSource = 'manual_form'
 type UserRole = 'admin' | 'catequista'
 const CATEQUETICO_APP_CODE = 'catequetico'
@@ -271,6 +271,10 @@ const articleCategoryMeta = {
     label: 'Vida dos Santos',
     folderSlug: 'vida-dos-santos',
   },
+  biblical: {
+    label: 'Bíblica',
+    folderSlug: 'biblica',
+  },
 } satisfies Record<ArticleCategory, { label: string; folderSlug: string }>
 
 function corsHeaders(origin: string | null, env: GatewayEnv) {
@@ -338,7 +342,7 @@ function buildAppThreadUrl(baseUrl: string, route: string, threadId: string) {
 }
 
 function normalizeArticleCategory(value?: string | null): ArticleCategory | null {
-  if (value === 'general' || value === 'saints-life') {
+  if (value === 'general' || value === 'saints-life' || value === 'biblical') {
     return value
   }
 
@@ -583,7 +587,7 @@ async function listCatequeticoUsers(env: GatewayEnv) {
   )
 
   if (!response.ok || !Array.isArray(data)) {
-    throw new Error('Nao foi possivel carregar os usuarios do Catequetico.')
+    throw new Error('Não foi possível carregar os usuários do Catequético.')
   }
 
   const accessRows = data.map(mapUserAppAccessRow)
@@ -600,7 +604,7 @@ async function listCatequeticoUsers(env: GatewayEnv) {
   )
 
   if (!usersResponse.ok || !Array.isArray(usersData)) {
-    throw new Error('Nao foi possivel carregar os perfis compartilhados dos usuarios.')
+    throw new Error('Não foi possível carregar os perfis compartilhados dos usuários.')
   }
 
   const sharedUsersById = new Map(
@@ -645,7 +649,7 @@ async function upsertSharedUserProfile(
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Nao foi possivel salvar o perfil do usuario.')
+    throw new Error('Não foi possível salvar o perfil do usuário.')
   }
 
   return mapSharedUserRow(data[0])
@@ -673,7 +677,7 @@ async function upsertUserAppAccess(
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Nao foi possivel salvar o acesso do usuario ao Catequetico.')
+    throw new Error('Não foi possível salvar o acesso do usuário ao Catequético.')
   }
 
   return mapUserAppAccessRow(data[0])
@@ -689,7 +693,7 @@ async function deleteUserAppAccess(env: GatewayEnv, userId: string) {
   )
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel remover o acesso do usuario ao Catequetico.')
+    throw new Error('Não foi possível remover o acesso do usuário ao Catequético.')
   }
 }
 
@@ -717,7 +721,7 @@ async function createAuthUser(
   const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
 
   if (!response.ok || !payload?.user?.id) {
-    throw new Error(payload?.error?.message ?? 'Nao foi possivel criar o usuario no Auth.')
+    throw new Error(payload?.error?.message ?? 'Não foi possível criar o usuário no Auth.')
   }
 
   return payload.user
@@ -745,7 +749,7 @@ async function updateAuthUser(
   const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
 
   if (!response.ok || !payload?.user?.id) {
-    throw new Error(payload?.error?.message ?? 'Nao foi possivel atualizar o usuario no Auth.')
+    throw new Error(payload?.error?.message ?? 'Não foi possível atualizar o usuário no Auth.')
   }
 
   return payload.user
@@ -762,7 +766,7 @@ async function deleteAuthUser(env: GatewayEnv, userId: string) {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
-    throw new Error(payload?.error?.message ?? 'Nao foi possivel excluir o usuario.')
+    throw new Error(payload?.error?.message ?? 'Não foi possível excluir o usuário.')
   }
 }
 
@@ -848,7 +852,7 @@ async function upsertArticleRow(
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Nao foi possivel salvar o artigo.')
+    throw new Error('Não foi possível salvar o artigo.')
   }
 
   return data[0]
@@ -871,7 +875,7 @@ async function ensureArticleCategorySubscription(
   )
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel consultar as inscricoes desta pasta.')
+    throw new Error('Não foi possível consultar as inscrições desta pasta.')
   }
 
   if (Array.isArray(data) && data.length > 0) {
@@ -898,7 +902,7 @@ async function ensureArticleCategorySubscription(
     )
 
     if (!updateResponse.ok || !Array.isArray(updateData) || updateData.length === 0) {
-      throw new Error('Nao foi possivel reativar a inscricao desta pasta.')
+      throw new Error('Não foi possível reativar a inscrição desta pasta.')
     }
 
     return { subscription: updateData[0], created: true }
@@ -922,7 +926,7 @@ async function ensureArticleCategorySubscription(
   )
 
   if (!insertResponse.ok || !Array.isArray(insertData) || insertData.length === 0) {
-    throw new Error('Nao foi possivel criar a inscricao desta pasta.')
+    throw new Error('Não foi possível criar a inscrição desta pasta.')
   }
 
   return { subscription: insertData[0], created: true }
@@ -936,7 +940,7 @@ async function listActiveArticleCategorySubscriptions(env: GatewayEnv, category:
   )
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel carregar as inscricoes desta pasta.')
+    throw new Error('Não foi possível carregar as inscrições desta pasta.')
   }
 
   return Array.isArray(data) ? data : []
@@ -1170,7 +1174,7 @@ async function insertComment(env: GatewayEnv, payload: Record<string, unknown>) 
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Nao foi possivel salvar o comentario.')
+    throw new Error('Não foi possível salvar o comentário.')
   }
 
   return data[0]
@@ -1193,7 +1197,7 @@ async function ensureSubscription(
   )
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel consultar as inscricoes da thread.')
+    throw new Error('Não foi possível consultar as inscrições da thread.')
   }
 
   if (Array.isArray(data) && data.length > 0) {
@@ -1224,7 +1228,7 @@ async function ensureSubscription(
     )
 
     if (!updateResponse.ok || !Array.isArray(updateData) || updateData.length === 0) {
-      throw new Error('Nao foi possivel atualizar a inscricao da thread.')
+      throw new Error('Não foi possível atualizar a inscrição da thread.')
     }
 
     return { subscription: updateData[0], created: true }
@@ -1248,7 +1252,7 @@ async function ensureSubscription(
   )
 
   if (!insertResponse.ok || !Array.isArray(insertData) || insertData.length === 0) {
-    throw new Error('Nao foi possivel criar a inscricao da thread.')
+    throw new Error('Não foi possível criar a inscrição da thread.')
   }
 
   return { subscription: insertData[0], created: true }
@@ -1262,7 +1266,7 @@ async function listActiveSubscriptions(env: GatewayEnv, rootCommentId: string) {
   )
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel carregar as inscricoes da thread.')
+    throw new Error('Não foi possível carregar as inscrições da thread.')
   }
 
   return Array.isArray(data) ? data : []
@@ -1515,7 +1519,7 @@ async function notifyThreadParticipants(env: GatewayEnv, comment: CommentRow, wo
         event_type: 'email_failed',
         recipient_email: subscription.email,
         payload: {
-          reason: 'Nao foi possivel montar o contexto do conteudo para o email.',
+          reason: 'Não foi possível montar o contexto do conteúdo para o email.',
         },
       })
     }
@@ -1556,7 +1560,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   const body = await parseJson<CommentRequestBody>(request)
 
   if (!body) {
-    return json({ error: 'Corpo invalido.' }, 400, headers)
+    return json({ error: 'Corpo inválido.' }, 400, headers)
   }
 
   const contentType = body.contentType === 'article' || body.contentType === 'encounter' ? body.contentType : null
@@ -1570,7 +1574,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   const isAuthenticatedAuthor = Boolean(authUser)
 
   if (!contentType || !isUuid(contentId)) {
-    return json({ error: 'Conteudo invalido.' }, 400, headers)
+    return json({ error: 'Conteúdo inválido.' }, 400, headers)
   }
 
   if (!authorName) {
@@ -1578,11 +1582,11 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   }
 
   if (!commentBody) {
-    return json({ error: 'Escreva um comentario.' }, 400, headers)
+    return json({ error: 'Escreva um comentário.' }, 400, headers)
   }
 
   if (!isAuthenticatedAuthor && authorEmail && !isValidEmail(authorEmail)) {
-    return json({ error: 'Informe um email valido.' }, 400, headers)
+    return json({ error: 'Informe um email válido.' }, 400, headers)
   }
 
   if (!isAuthenticatedAuthor && notifyReplies && !authorEmail) {
@@ -1592,28 +1596,28 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   const contentExists = await ensureContentExists(env, contentType, contentId)
 
   if (!contentExists) {
-    return json({ error: 'O conteudo informado nao foi encontrado.' }, 404, headers)
+    return json({ error: 'O conteúdo informado não foi encontrado.' }, 404, headers)
   }
 
   let parentComment: CommentRow | null = null
 
   if (parentCommentId) {
     if (!isUuid(parentCommentId)) {
-      return json({ error: 'Comentario pai invalido.' }, 400, headers)
+      return json({ error: 'Comentário pai inválido.' }, 400, headers)
     }
 
     parentComment = await getCommentById(env, parentCommentId)
 
     if (!parentComment) {
-      return json({ error: 'Comentario pai nao encontrado.' }, 404, headers)
+      return json({ error: 'Comentário pai não encontrado.' }, 404, headers)
     }
 
     if (parentComment.parent_comment_id) {
-      return json({ error: 'Nao e permitido responder uma resposta.' }, 400, headers)
+      return json({ error: 'Não é permitido responder uma resposta.' }, 400, headers)
     }
 
     if (parentComment.content_type !== contentType || parentComment.content_id !== contentId) {
-      return json({ error: 'A resposta nao pertence a este conteudo.' }, 400, headers)
+      return json({ error: 'A resposta não pertence a este conteúdo.' }, 400, headers)
     }
   }
 
@@ -1686,7 +1690,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
             payload: {
               kind: 'thread_subscription_confirmation',
               source: createdOptInSubscription.source,
-              error: 'Nao foi possivel montar o contexto do conteudo para o email de assinatura.',
+              error: 'Não foi possível montar o contexto do conteúdo para o email de assinatura.',
             },
           },
         ])
@@ -1733,7 +1737,7 @@ async function handleCreateComment(request: Request, env: GatewayEnv, headers: R
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel publicar o comentario.',
+        error: error instanceof Error ? error.message : 'Não foi possível publicar o comentário.',
       },
       400,
       headers,
@@ -1749,7 +1753,7 @@ async function handleCreateArticleSubscription(
   const body = await parseJson<ArticleSubscriptionRequestBody>(request)
 
   if (!body) {
-    return json({ error: 'Corpo invalido.' }, 400, headers)
+    return json({ error: 'Corpo inválido.' }, 400, headers)
   }
 
   const category = normalizeArticleCategory(body.category)
@@ -1760,7 +1764,7 @@ async function handleCreateArticleSubscription(
   }
 
   if (!isValidEmail(email)) {
-    return json({ error: 'Informe um email valido.' }, 400, headers)
+    return json({ error: 'Informe um email válido.' }, 400, headers)
   }
 
   const subscriberName = buildSubscriberName(email, body.subscriberName)
@@ -1845,7 +1849,7 @@ async function handleCreateArticleSubscription(
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel registrar a inscricao.',
+        error: error instanceof Error ? error.message : 'Não foi possível registrar a inscrição.',
       },
       400,
       headers,
@@ -1863,7 +1867,7 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   const body = await parseJson<ArticleInput>(request)
 
   if (!body) {
-    return json({ error: 'Corpo invalido.' }, 400, headers)
+    return json({ error: 'Corpo inválido.' }, 400, headers)
   }
 
   const articleId = typeof body.id === 'string' ? body.id.trim() : ''
@@ -1887,7 +1891,7 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
       : new Date().toISOString()
 
   if (!isUuid(articleId)) {
-    return json({ error: 'Identificador do artigo invalido.' }, 400, headers)
+    return json({ error: 'Identificador do artigo inválido.' }, 400, headers)
   }
 
   if (!slug) {
@@ -1895,11 +1899,11 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   }
 
   if (!title) {
-    return json({ error: 'Informe o titulo do artigo.' }, 400, headers)
+    return json({ error: 'Informe o título do artigo.' }, 400, headers)
   }
 
   if (!contentHtml) {
-    return json({ error: 'Informe o conteudo do artigo.' }, 400, headers)
+    return json({ error: 'Informe o conteúdo do artigo.' }, 400, headers)
   }
 
   if (!category) {
@@ -1942,7 +1946,7 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel salvar o artigo.',
+        error: error instanceof Error ? error.message : 'Não foi possível salvar o artigo.',
       },
       400,
       headers,
@@ -1954,7 +1958,7 @@ async function handleListUsers(request: Request, env: GatewayEnv, headers: Recor
   const authUser = await getAuthenticatedUser(request, env)
 
   if (!isAdminUser(authUser)) {
-    return json({ error: 'Apenas administradores podem acessar usuarios.' }, 403, headers)
+    return json({ error: 'Apenas administradores podem acessar usuários.' }, 403, headers)
   }
 
   try {
@@ -1963,7 +1967,7 @@ async function handleListUsers(request: Request, env: GatewayEnv, headers: Recor
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel carregar os usuarios.',
+        error: error instanceof Error ? error.message : 'Não foi possível carregar os usuários.',
       },
       400,
       headers,
@@ -1975,13 +1979,13 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
   const authUser = await getAuthenticatedUser(request, env)
 
   if (!isAdminUser(authUser)) {
-    return json({ error: 'Apenas administradores podem criar usuarios.' }, 403, headers)
+    return json({ error: 'Apenas administradores podem criar usuários.' }, 403, headers)
   }
 
   const body = await parseJson<CreateUserRequestBody>(request)
 
   if (!body) {
-    return json({ error: 'Corpo invalido.' }, 400, headers)
+    return json({ error: 'Corpo inválido.' }, 400, headers)
   }
 
   const email = body.email?.trim().toLowerCase() ?? ''
@@ -1990,7 +1994,7 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
   const name = buildDisplayName(email, body.name)
 
   if (!isValidEmail(email)) {
-    return json({ error: 'Informe um email valido.' }, 400, headers)
+    return json({ error: 'Informe um email válido.' }, 400, headers)
   }
 
   if (password.length < 6) {
@@ -1998,7 +2002,7 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
   }
 
   if (!role) {
-    return json({ error: 'Perfil invalido.' }, 400, headers)
+    return json({ error: 'Perfil inválido.' }, 400, headers)
   }
 
   const existingSharedUser = await getSharedUserByEmail(env, email)
@@ -2007,13 +2011,13 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
     const existingAccess = await getUserAppAccessByUserId(env, existingSharedUser.id)
 
     if (existingAccess) {
-      return json({ error: 'Este email ja possui acesso ao Catequetico.' }, 400, headers)
+      return json({ error: 'Este email já possui acesso ao Catequético.' }, 400, headers)
     }
 
     return json(
       {
         error:
-          'Este email ja pertence a um usuario existente em outro sistema do mesmo Supabase. Para evitar sobrescrever uma conta compartilhada, use outro email.',
+          'Este email já pertence a um usuário existente em outro sistema do mesmo Supabase. Para evitar sobrescrever uma conta compartilhada, use outro email.',
       },
       400,
       headers,
@@ -2060,7 +2064,7 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
       credentialsEmailQueued = true
     } catch (error) {
       credentialsEmailError =
-        error instanceof Error ? error.message : 'Nao foi possivel enviar o email de credenciais.'
+        error instanceof Error ? error.message : 'Não foi possível enviar o email de credenciais.'
     }
 
     return json(
@@ -2083,7 +2087,7 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
 
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel criar o usuario.',
+        error: error instanceof Error ? error.message : 'Não foi possível criar o usuário.',
       },
       400,
       headers,
@@ -2100,33 +2104,33 @@ async function handleUpdateUser(
   const authUser = await getAuthenticatedUser(request, env)
 
   if (!isAdminUser(authUser)) {
-    return json({ error: 'Apenas administradores podem atualizar usuarios.' }, 403, headers)
+    return json({ error: 'Apenas administradores podem atualizar usuários.' }, 403, headers)
   }
 
   if (!isUuid(userId)) {
-    return json({ error: 'Usuario invalido.' }, 400, headers)
+    return json({ error: 'Usuário inválido.' }, 400, headers)
   }
 
   if (authUser?.id === userId) {
-    return json({ error: 'Nao e permitido alterar o proprio perfil por esta tela.' }, 400, headers)
+    return json({ error: 'Não é permitido alterar o próprio perfil por esta tela.' }, 400, headers)
   }
 
   const body = await parseJson<UpdateUserRequestBody>(request)
 
   if (!body) {
-    return json({ error: 'Corpo invalido.' }, 400, headers)
+    return json({ error: 'Corpo inválido.' }, 400, headers)
   }
 
   const currentUser = await getCatequeticoUserById(env, userId)
 
   if (!currentUser) {
-    return json({ error: 'Usuario do Catequetico nao encontrado.' }, 404, headers)
+    return json({ error: 'Usuário do Catequético não encontrado.' }, 404, headers)
   }
 
   const role = normalizeUserRole(body.role)
 
   if (!role) {
-    return json({ error: 'Perfil invalido.' }, 400, headers)
+    return json({ error: 'Perfil inválido.' }, 400, headers)
   }
 
   const name = buildDisplayName(currentUser.email, body.name ?? currentUser.nome)
@@ -2153,7 +2157,7 @@ async function handleUpdateUser(
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel atualizar o usuario.',
+        error: error instanceof Error ? error.message : 'Não foi possível atualizar o usuário.',
       },
       400,
       headers,
@@ -2170,21 +2174,21 @@ async function handleDeleteUser(
   const authUser = await getAuthenticatedUser(request, env)
 
   if (!isAdminUser(authUser)) {
-    return json({ error: 'Apenas administradores podem excluir usuarios.' }, 403, headers)
+    return json({ error: 'Apenas administradores podem excluir usuários.' }, 403, headers)
   }
 
   if (!isUuid(userId)) {
-    return json({ error: 'Usuario invalido.' }, 400, headers)
+    return json({ error: 'Usuário inválido.' }, 400, headers)
   }
 
   if (authUser?.id === userId) {
-    return json({ error: 'Nao e permitido excluir o proprio usuario.' }, 400, headers)
+    return json({ error: 'Não é permitido excluir o próprio usuário.' }, 400, headers)
   }
 
   const currentUser = await getCatequeticoUserById(env, userId)
 
   if (!currentUser) {
-    return json({ error: 'Usuario do Catequetico nao encontrado.' }, 404, headers)
+    return json({ error: 'Usuário do Catequético não encontrado.' }, 404, headers)
   }
 
   try {
@@ -2193,7 +2197,7 @@ async function handleDeleteUser(
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Nao foi possivel excluir o usuario.',
+        error: error instanceof Error ? error.message : 'Não foi possível excluir o usuário.',
       },
       400,
       headers,
@@ -2211,7 +2215,7 @@ async function handleArticleSubscriptionUnsubscribe(
 
   if (!isUuid(token)) {
     return html(
-      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Link invalido</h1><p>O token de descadastro informado nao e valido.</p></main>`,
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Link inválido</h1><p>O token de descadastro informado não é válido.</p></main>`,
       400,
       headers,
     )
@@ -2225,7 +2229,7 @@ async function handleArticleSubscriptionUnsubscribe(
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
     return html(
-      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Inscricao nao encontrada</h1><p>Este link nao corresponde a uma inscricao ativa.</p></main>`,
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Inscrição não encontrada</h1><p>Este link não corresponde a uma inscrição ativa.</p></main>`,
       404,
       headers,
     )
@@ -2261,7 +2265,7 @@ async function handleArticleSubscriptionUnsubscribe(
   const categoryLabel = getArticleCategoryDetails(subscription.category).label
 
   return html(
-    `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Descadastro concluido</h1><p>O endereco <strong>${escapeHtml(subscription.email)}</strong> nao recebera mais notificacoes de novos artigos em <strong>${escapeHtml(categoryLabel)}</strong>.</p></main>`,
+    `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Descadastro concluído</h1><p>O endereço <strong>${escapeHtml(subscription.email)}</strong> não receberá mais notificações de novos artigos em <strong>${escapeHtml(categoryLabel)}</strong>.</p></main>`,
     200,
     headers,
   )
@@ -2273,7 +2277,7 @@ async function handleUnsubscribe(request: Request, env: GatewayEnv, headers: Rec
 
   if (!isUuid(token)) {
     return html(
-      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Link invalido</h1><p>O token de descadastro informado nao e valido.</p></main>`,
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Link inválido</h1><p>O token de descadastro informado não é válido.</p></main>`,
       400,
       headers,
     )
@@ -2287,7 +2291,7 @@ async function handleUnsubscribe(request: Request, env: GatewayEnv, headers: Rec
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
     return html(
-      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Inscricao nao encontrada</h1><p>Este link nao corresponde a uma assinatura ativa.</p></main>`,
+      `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Inscrição não encontrada</h1><p>Este link não corresponde a uma assinatura ativa.</p></main>`,
       404,
       headers,
     )
@@ -2320,7 +2324,7 @@ async function handleUnsubscribe(request: Request, env: GatewayEnv, headers: Rec
   }
 
   return html(
-    `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Descadastro concluido</h1><p>O endereco <strong>${escapeHtml(subscription.email)}</strong> nao recebera mais notificacoes desta conversa.</p></main>`,
+    `<main style="font-family:system-ui;padding:32px;max-width:640px;margin:0 auto;"><h1>Descadastro concluído</h1><p>O endereço <strong>${escapeHtml(subscription.email)}</strong> não receberá mais notificações desta conversa.</p></main>`,
     200,
     headers,
   )
@@ -2346,7 +2350,7 @@ export default {
           ok: true,
           site: getSiteName(runtimeEnv),
           storageBucket: runtimeEnv.SUPABASE_STORAGE_BUCKET,
-          note: 'A service_role permanece no Worker. A anon key nao e devolvida por este endpoint.',
+          note: 'A service_role permanece no Worker. A anon key não é devolvida por este endpoint.',
         },
         200,
         headers,
@@ -2440,7 +2444,7 @@ export default {
       const payload = (await signedUrlResponse.json()) as { signedURL?: string; error?: string }
 
       if (!signedUrlResponse.ok || !payload.signedURL) {
-        return json({ error: payload.error ?? 'Nao foi possivel assinar o download.' }, 400, headers)
+        return json({ error: payload.error ?? 'Não foi possível assinar o download.' }, 400, headers)
       }
 
       return json(
@@ -2452,6 +2456,6 @@ export default {
       )
     }
 
-    return json({ error: 'Rota nao encontrada.' }, 404, headers)
+    return json({ error: 'Rota não encontrada.' }, 404, headers)
   },
 } satisfies ExportedHandler<GatewayEnv>

@@ -301,7 +301,7 @@ export function upsertLocalAsset(asset: EncounterAsset) {
   const encounter = state.encounters.find((item) => item.id === normalizedAsset.encounterId)
 
   if (!encounter) {
-    throw new Error('Encontro nao encontrado para anexar o material.')
+    throw new Error('Encontro não encontrado para anexar o material.')
   }
 
   const assetIndex = encounter.assets.findIndex((item) => item.id === normalizedAsset.id)
@@ -333,7 +333,7 @@ export function upsertLocalQuiz(quiz: EncounterQuiz) {
   const encounter = state.encounters.find((item) => item.id === normalizedQuiz.encounterId)
 
   if (!encounter) {
-    throw new Error('Encontro nao encontrado para salvar o quiz.')
+    throw new Error('Encontro não encontrado para salvar o quiz.')
   }
 
   encounter.quiz = normalizedQuiz

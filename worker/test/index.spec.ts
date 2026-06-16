@@ -50,7 +50,7 @@ describe('catechesis gateway worker', () => {
     const body = await response.text()
 
     expect(response.status).toBe(400)
-    expect(body).toContain('Link invalido')
+    expect(body).toContain('Link inválido')
   })
 
   it('mantem 404 para rotas desconhecidas', async () => {
@@ -58,14 +58,14 @@ describe('catechesis gateway worker', () => {
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({
-      error: 'Rota nao encontrada.',
+      error: 'Rota não encontrada.',
     })
   })
 
   it('monta o email de confirmacao de assinatura da thread', () => {
     const subject = buildThreadSubscriptionSubject({
       contentLabel: 'Artigo',
-      contentTitle: 'Como organizar um encontro catequetico',
+      contentTitle: 'Como organizar um encontro catequético',
       contentUrl: 'https://catequetico.org/#/artigos/como-organizar-um-encontro-catequetico?thread=abc',
       subscriberName: 'Maria',
       unsubscribeUrl: 'https://worker.example/comments/unsubscribe?token=abc',
@@ -73,18 +73,18 @@ describe('catechesis gateway worker', () => {
     })
     const html = buildThreadSubscriptionHtml({
       contentLabel: 'Artigo',
-      contentTitle: 'Como organizar um encontro catequetico',
+      contentTitle: 'Como organizar um encontro catequético',
       contentUrl: 'https://catequetico.org/#/artigos/como-organizar-um-encontro-catequetico?thread=abc',
       subscriberName: 'Maria',
       unsubscribeUrl: 'https://worker.example/comments/unsubscribe?token=abc',
       siteName: 'Catequético',
     })
 
-    expect(subject).toContain('Voce esta acompanhando a conversa')
-    expect(subject).toContain('Como organizar um encontro catequetico')
+    expect(subject).toContain('Você está acompanhando a conversa')
+    expect(subject).toContain('Como organizar um encontro catequético')
     expect(html).toContain('Assinatura confirmada')
     expect(html).toContain('Maria')
-    expect(html).toContain('Esta assinatura vale apenas para esta thread especifica.')
+    expect(html).toContain('Esta assinatura vale apenas para esta thread específica.')
     expect(html).toContain('https://worker.example/comments/unsubscribe?token=abc')
   })
 
@@ -104,8 +104,8 @@ describe('catechesis gateway worker', () => {
       siteName: 'Catequético',
     })
 
-    expect(subject).toContain('Inscricao confirmada em Vida dos Santos')
-    expect(html).toContain('Inscricao confirmada')
+    expect(subject).toContain('Inscrição confirmada em Vida dos Santos')
+    expect(html).toContain('Inscrição confirmada')
     expect(html).toContain('Maria')
     expect(html).toContain('Vida dos Santos')
     expect(html).toContain('https://worker.example/article-subscriptions/unsubscribe?token=abc')

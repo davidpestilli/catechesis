@@ -7,13 +7,13 @@ const sections = [
   {
     to: '/artigos',
     title: 'Artigos',
-    description: 'Abra a biblioteca de artigos e navegue pelas pastas Gerais e Vida dos Santos.',
+    description: 'Abra a biblioteca de artigos e navegue pelas pastas Gerais, Vida dos Santos e Bíblica.',
     icon: ScrollText,
   },
   {
     to: '/links-uteis',
     title: 'Links Uteis',
-    description: 'Acesse uma selecao de links externos com materiais de consulta e aprofundamento.',
+    description: 'Acesse uma seleção de links externos com materiais de consulta e aprofundamento.',
     icon: ExternalLink,
   },
 ]
@@ -22,9 +22,9 @@ export function MiscPage() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 pb-24">
       <SectionTitle
-        eyebrow="conteudos"
+        eyebrow="conteúdos"
         title="Diversos"
-        body="Reunimos aqui outros caminhos de apoio para a catequese, com acesso rapido a artigos e links de referencia."
+        body="Reunimos aqui outros caminhos de apoio para a catequese, com acesso rápido a artigos e links de referência."
       />
 
       <div className="grid gap-5 lg:grid-cols-2">

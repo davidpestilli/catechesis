@@ -91,13 +91,13 @@ async function getAuthToken() {
 
 async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
   if (!env.workerUrl) {
-    throw new Error('A URL do Worker nao foi configurada.')
+    throw new Error('A URL do Worker não foi configurada.')
   }
 
   const token = await getAuthToken()
 
   if (!token) {
-    throw new Error('Sua sessao expirou. Faca login novamente para salvar o artigo.')
+    throw new Error('Sua sessão expirou. Faça login novamente para salvar o artigo.')
   }
 
   const response = await fetch(`${env.workerUrl}/admin/articles`, {
@@ -127,7 +127,7 @@ async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, '
     | null
 
   if (!response.ok || !payload?.article) {
-    throw new Error(payload?.error ?? 'Nao foi possivel salvar o artigo.')
+    throw new Error(payload?.error ?? 'Não foi possível salvar o artigo.')
   }
 
   return mapArticleRow(payload.article)

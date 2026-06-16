@@ -52,9 +52,9 @@ const fonts = [
 
 const headings = [
   { label: 'Paragrafo', value: 'p' },
-  { label: 'Titulo 1', value: 'h1' },
-  { label: 'Titulo 2', value: 'h2' },
-  { label: 'Titulo 3', value: 'h3' },
+  { label: 'Título 1', value: 'h1' },
+  { label: 'Título 2', value: 'h2' },
+  { label: 'Título 3', value: 'h3' },
 ]
 
 const fallbackTextColor = '#292524'
@@ -152,7 +152,7 @@ function normalizeTextAlignment(value: string | null | undefined): TextAlignment
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Digite ou cole o conteudo aqui...',
+  placeholder = 'Digite ou cole o conteúdo aqui...',
   className,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
@@ -360,7 +360,7 @@ export function RichTextEditor({
       },
       {
         icon: Quote,
-        label: 'Citacao',
+        label: 'Citação',
         active: toolbarState.isBlockquote,
         action: () => applyBlockFormat(toolbarState.isBlockquote ? 'p' : 'blockquote'),
       },
@@ -539,11 +539,11 @@ export function RichTextEditor({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-stone-50/70 px-4 py-3 text-xs text-stone-500">
         <span className="inline-flex items-center gap-2 font-medium">
           <Type className="h-3.5 w-3.5" />
-          HTML publicado no proprio sistema
+          HTML publicado no próprio sistema
         </span>
         <span>
           {plainText
-            ? `${plainText.length} caracteres no conteudo`
+            ? `${plainText.length} caracteres no conteúdo`
             : 'Editor pronto para receber texto, imagens, video, citacoes e cor'}
         </span>
       </div>

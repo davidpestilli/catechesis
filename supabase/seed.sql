@@ -21,7 +21,7 @@ values (
   '99999999-9999-9999-9999-999999999991',
   'turma-sao-pedro',
   'Turma Sao Pedro',
-  'Firmes na fe, alegres na missao.',
+  'Firmes na fé, alegres na missão.',
   'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
   1
 ),
@@ -74,7 +74,7 @@ values (
   'a-palavra-que-ilumina',
   'A Palavra que Ilumina',
   'Encontros',
-  'Encontro sobre a escuta da Palavra, meditacao e compromisso.',
+  'Encontro sobre a escuta da Palavra, meditação e compromisso.',
   'Biblia e vida',
   'Turmas intermediarias',
   2,
@@ -87,8 +87,8 @@ values (
   'jesus-nos-chama-pelo-nome',
   'Jesus nos Chama pelo Nome',
   'Encontros',
-  'Encontro sobre vocacao pessoal, escuta do Evangelho e resposta concreta.',
-  'Identidade e vocacao',
+  'Encontro sobre vocação pessoal, escuta do Evangelho e resposta concreta.',
+  'Identidade e vocação',
   'Catequizandos iniciantes',
   2,
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80',
@@ -100,12 +100,12 @@ values (
   'celebrar-e-fazer-memoria',
   'Celebrar e Fazer Memoria',
   'Encontros',
-  'Encontro sobre celebracao, memoria da fe e experiencia comunitaria.',
+  'Encontro sobre celebração, memória da fé e experiência comunitária.',
   'Liturgia e comunidade',
   'Turmas intermediarias',
   2,
   'https://images.unsplash.com/photo-1464638681273-0962e9b53566?auto=format&fit=crop&w=1200&q=80',
-  '<h2>Memoria viva</h2><p>A celebracao ajuda a comunidade a recordar a acao de Deus e responder com louvor, escuta e compromisso.</p>'
+  '<h2>Memória viva</h2><p>A celebração ajuda a comunidade a recordar a ação de Deus e responder com louvor, escuta e compromisso.</p>'
 ),
 (
   '22222222-2222-2222-2222-222222222225',
@@ -113,12 +113,12 @@ values (
   'servico-e-envio',
   'Servico e Envio',
   'Encontros',
-  'Encontro sobre caridade, servico e compromisso vivido durante a semana.',
+  'Encontro sobre caridade, serviço e compromisso vivido durante a semana.',
   'Missao crista',
   'Turmas intermediarias',
   3,
   'https://images.unsplash.com/photo-1469571486292-b53601020f35?auto=format&fit=crop&w=1200&q=80',
-  '<h2>Fe que se torna gesto</h2><p>O encontro termina com um compromisso simples para a semana e com a recordacao de que a catequese continua fora da sala.</p>'
+  '<h2>Fé que se torna gesto</h2><p>O encontro termina com um compromisso simples para a semana e com a recordação de que a catequese continua fora da sala.</p>'
 )
 on conflict (id) do update
 set
@@ -162,7 +162,7 @@ values (
   '44444444-4444-4444-4444-444444444444',
   '11111111-1111-1111-1111-111111111111',
   'Video de acolhida',
-  'Breve introducao em video para abrir a conversa do encontro.',
+  'Breve introdução em vídeo para abrir a conversa do encontro.',
   'support',
   'link',
   'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -198,7 +198,7 @@ values (
   '44444444-4444-4444-4444-444444444445',
   '22222222-2222-2222-2222-222222222223',
   'Roteiro do catequista',
-  'Sequencia sugerida para acolhida, Palavra e dinamica.',
+  'Sequência sugerida para acolhida, Palavra e dinâmica.',
   'summary',
   'pdf',
   'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
@@ -222,7 +222,7 @@ values (
   '44444444-4444-4444-4444-444444444447',
   '22222222-2222-2222-2222-222222222225',
   'Proposta de gesto concreto',
-  'Sugestoes de servico para viver durante a semana.',
+  'Sugestões de serviço para viver durante a semana.',
   'support',
   'link',
   'https://www.vatican.va',
@@ -234,7 +234,7 @@ values (
   '44444444-4444-4444-4444-444444444450',
   '22222222-2222-2222-2222-222222222225',
   'Livro para aprofundamento',
-  'Referencia bibliografica para continuar o estudo sobre missao e servico.',
+  'Referência bibliográfica para continuar o estudo sobre missão e serviço.',
   'support',
   'link',
   'https://books.google.com',
@@ -265,7 +265,7 @@ values (
   '55555555-5555-5555-5555-555555555556',
   '22222222-2222-2222-2222-222222222223',
   'Quiz do chamado',
-  'Revise os pontos principais sobre vocacao e resposta.'
+  'Revise os pontos principais sobre vocação e resposta.'
 )
 on conflict (id) do update
 set
@@ -301,11 +301,11 @@ values
   ('77777777-7777-7777-7777-777777777772', '66666666-6666-6666-6666-666666666666', 'Reconhecer a catequese como caminhada de fe em comunidade.', true, 2),
   ('77777777-7777-7777-7777-777777777773', '66666666-6666-6666-6666-666666666666', 'Substituir a vida comunitaria por estudo individual.', false, 3),
   ('77777777-7777-7777-7777-777777777774', '66666666-6666-6666-6666-666666666666', 'Tratar somente de regras disciplinares.', false, 4),
-  ('77777777-7777-7777-7777-777777777775', '66666666-6666-6666-6666-666666666666', 'Encerrar a preparacao liturgica do grupo.', false, 5),
+  ('77777777-7777-7777-7777-777777777775', '66666666-6666-6666-6666-666666666666', 'Encerrar a preparação litúrgica do grupo.', false, 5),
   ('77777777-7777-7777-7777-777777777776', '66666666-6666-6666-6666-666666666667', 'Que a fe dispensa a comunidade.', false, 1),
   ('77777777-7777-7777-7777-777777777777', '66666666-6666-6666-6666-666666666667', 'Que o chamado de Deus alcanca a historia pessoal de cada um.', true, 2),
   ('77777777-7777-7777-7777-777777777778', '66666666-6666-6666-6666-666666666667', 'Que somente os catequistas sao chamados.', false, 3),
-  ('77777777-7777-7777-7777-777777777779', '66666666-6666-6666-6666-666666666667', 'Que basta decorar conteudos.', false, 4),
+  ('77777777-7777-7777-7777-777777777779', '66666666-6666-6666-6666-666666666667', 'Que basta decorar conteúdos.', false, 4),
   ('77777777-7777-7777-7777-777777777780', '66666666-6666-6666-6666-666666666667', 'Que nao ha necessidade de resposta.', false, 5)
 on conflict (id) do update
 set
@@ -330,9 +330,9 @@ insert into public.articles (
 values (
   '88888888-8888-8888-8888-888888888888',
   'como-organizar-um-encontro-catequetico',
-  'Como organizar um encontro catequetico',
-  'Guia breve para preparar acolhida, Palavra, dinamica e envio com intencionalidade pastoral.',
-  '<h2>Antes do encontro</h2><p>Planeje o objetivo, a passagem biblica central e o gesto concreto do dia.</p><h2>Durante o encontro</h2><p>Varie os ritmos entre escuta, conversa, silencio e celebracao.</p><blockquote>A catequese floresce quando o conteudo encontra a vida.</blockquote>',
+  'Como organizar um encontro catequético',
+  'Guia breve para preparar acolhida, Palavra, dinâmica e envio com intencionalidade pastoral.',
+  '<h2>Antes do encontro</h2><p>Planeje o objetivo, a passagem bíblica central e o gesto concreto do dia.</p><h2>Durante o encontro</h2><p>Varie os ritmos entre escuta, conversa, silêncio e celebração.</p><blockquote>A catequese floresce quando o conteúdo encontra a vida.</blockquote>',
   'general',
   array['metodologia', 'planejamento', 'catequese'],
   'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
@@ -345,7 +345,7 @@ values (
   'sao-francisco-de-assis-e-a-alegria-do-evangelho',
   'Sao Francisco de Assis e a alegria do Evangelho',
   'Uma leitura breve sobre simplicidade, louvor e testemunho a partir da vida de Sao Francisco.',
-  '<h2>Um coracao livre</h2><p>Sao Francisco descobriu no Evangelho um caminho de liberdade, pobreza e fraternidade.</p><h2>Para a catequese</h2><p>Sua vida ajuda a aproximar os catequizandos da alegria simples de seguir Jesus com inteireza.</p>',
+  '<h2>Um coração livre</h2><p>São Francisco descobriu no Evangelho um caminho de liberdade, pobreza e fraternidade.</p><h2>Para a catequese</h2><p>Sua vida ajuda a aproximar os catequizandos da alegria simples de seguir Jesus com inteireza.</p>',
   'saints-life',
   array['santos', 'testemunho', 'espiritualidade'],
   'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?auto=format&fit=crop&w=1200&q=80',

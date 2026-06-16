@@ -17,7 +17,7 @@ export function AdminShell() {
       navigate('/login', { replace: true })
       toast.success('Sessao encerrada.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nao foi possivel encerrar a sessao.'
+      const message = error instanceof Error ? error.message : 'Não foi possível encerrar a sessão.'
       toast.error(message)
     } finally {
       setIsSigningOut(false)

@@ -46,7 +46,7 @@ export function LoginPage() {
             comentar como catequista.
           </CardDescription>
           <div className="mt-6 rounded-[24px] bg-stone-800/70 p-4 text-sm leading-7 text-stone-200">
-            Os perfis sao gerenciados no Supabase Auth. Apenas usuarios com perfil <strong>Admin</strong>{' '}
+            Os perfis são gerenciados no Supabase Auth. Apenas usuários com perfil <strong>Admin</strong>{' '}
             podem cadastrar ou excluir outros acessos.
           </div>
         </Card>

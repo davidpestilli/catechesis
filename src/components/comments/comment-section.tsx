@@ -61,12 +61,12 @@ function CommentForm({
     }
 
     if (!trimmedBody) {
-      toast.error('Escreva um comentario antes de enviar.')
+      toast.error('Escreva um comentário antes de enviar.')
       return
     }
 
     if (!isAuthenticated && trimmedEmail && !isValidEmail(trimmedEmail)) {
-      toast.error('Informe um email valido.')
+      toast.error('Informe um email válido.')
       return
     }
 
@@ -96,12 +96,12 @@ function CommentForm({
         setNotifyReplies(false)
       }
 
-      toast.success(parentCommentId ? 'Resposta publicada.' : 'Comentario publicado.')
+      toast.success(parentCommentId ? 'Resposta publicada.' : 'Comentário publicado.')
       onSubmitted?.({
         subscriptionConfirmationNeeded: result.subscriptionConfirmationNeeded,
       })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Nao foi possivel publicar o comentario.')
+      toast.error(error instanceof Error ? error.message : 'Não foi possível publicar o comentário.')
     }
   }
 
@@ -114,7 +114,7 @@ function CommentForm({
             id={parentCommentId ? `reply-name-${parentCommentId}` : 'comment-name'}
             value={authorName}
             onChange={(event) => setAuthorName(event.target.value)}
-            placeholder={isAuthenticated ? 'Nome que aparecera no comentario' : 'Seu nome'}
+            placeholder={isAuthenticated ? 'Nome que aparecerá no comentário' : 'Seu nome'}
             maxLength={80}
           />
         </div>
@@ -137,13 +137,13 @@ function CommentForm({
 
       <div className="space-y-2">
         <Label htmlFor={parentCommentId ? `reply-body-${parentCommentId}` : 'comment-body'}>
-          {parentCommentId ? 'Resposta' : 'Comentario'}
+          {parentCommentId ? 'Resposta' : 'Comentário'}
         </Label>
         <Textarea
           id={parentCommentId ? `reply-body-${parentCommentId}` : 'comment-body'}
           value={body}
           onChange={(event) => setBody(event.target.value)}
-          placeholder={parentCommentId ? 'Escreva sua resposta...' : 'Partilhe sua contribuicao para esta conversa...'}
+          placeholder={parentCommentId ? 'Escreva sua resposta...' : 'Partilhe sua contribuição para esta conversa...'}
           maxLength={5000}
         />
       </div>
@@ -159,15 +159,15 @@ function CommentForm({
           <span>
             Quero acompanhar esta conversa por email.
             <span className="block text-xs text-stone-500">
-              Se marcar esta opcao, o email passa a ser obrigatorio. O aviso de confirmacao pode levar alguns minutos
-              para chegar e vale conferir a caixa de spam ou a lixeira. Depois, voce podera sair da thread por link
+              Se marcar esta opção, o email passa a ser obrigatório. O aviso de confirmação pode levar alguns minutos
+              para chegar e vale conferir a caixa de spam ou a lixeira. Depois, você poderá sair da thread por link
               de descadastro.
             </span>
           </span>
         </label>
       ) : (
         <div className="rounded-3xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-stone-700">
-          Comentario de usuario autenticado. Seu email nao e exigido aqui.
+          Comentário de usuário autenticado. Seu email não é exigido aqui.
         </div>
       )}
 
@@ -315,11 +315,11 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
             <MessageSquare className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle>Comentarios</CardTitle>
+            <CardTitle>Comentários</CardTitle>
             <CardDescription className="mt-1">
               {isOpen
-                ? 'Publique sua mensagem ou responda a uma conversa ja iniciada.'
-                : 'Toque para abrir a area de conversa deste conteudo.'}
+                ? 'Publique sua mensagem ou responda a uma conversa já iniciada.'
+                : 'Toque para abrir a área de conversa deste conteúdo.'}
             </CardDescription>
           </div>
         </div>
@@ -327,7 +327,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
         <div className="flex shrink-0 items-center gap-3 text-sm text-stone-600">
           {commentsQuery.data ? (
             <span className="hidden sm:inline">
-              {commentsQuery.data.total} comentario{commentsQuery.data.total === 1 ? '' : 's'}
+              {commentsQuery.data.total} comentário{commentsQuery.data.total === 1 ? '' : 's'}
             </span>
           ) : null}
           <span>{isOpen ? 'Fechar' : 'Abrir'}</span>
@@ -342,7 +342,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
               <p>
                 Enviamos um email confirmando a assinatura desta thread. Ele pode levar alguns minutos para chegar.
                 Se cair na caixa de spam ou na lixeira, mova-o para a caixa principal para ajudar no recebimento dos
-                proximos emails do sistema.
+                próximos emails do sistema.
               </p>
             </SubscriptionEmailNotice>
           ) : null}
@@ -351,22 +351,22 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
             <CommentForm
               contentType={contentType}
               contentId={contentId}
-              submitLabel="Publicar comentario"
+              submitLabel="Publicar comentário"
               onSubmitted={(result) => {
                 setSubscriptionNoticeVisible(result.subscriptionConfirmationNeeded)
               }}
             />
           ) : (
             <div className="rounded-[28px] border border-dashed border-stone-300 bg-stone-50/90 px-5 py-4 text-sm text-stone-600">
-              Comentarios indisponiveis enquanto o Supabase e o Worker nao estiverem configurados.
+              Comentários indisponíveis enquanto o Supabase e o Worker não estiverem configurados.
             </div>
           )}
 
           {commentsQuery.isLoading ? (
-            <div className="text-sm text-stone-600">Carregando comentarios...</div>
+            <div className="text-sm text-stone-600">Carregando comentários...</div>
           ) : commentsQuery.error ? (
             <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              Nao foi possivel carregar os comentarios.
+              Não foi possível carregar os comentários.
             </div>
           ) : commentsQuery.data ? (
             <>
@@ -383,7 +383,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
                   ))
                 ) : (
                   <div className="rounded-[28px] border border-stone-200 bg-stone-50/80 px-5 py-4 text-sm text-stone-600">
-                    Ainda nao ha comentarios nesta pagina.
+                    Ainda não há comentários nesta página.
                   </div>
                 )}
               </div>
@@ -410,7 +410,7 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
                       onClick={() => setPage((current) => current + 1)}
                       disabled={!commentsQuery.data.hasMore}
                     >
-                      Proxima
+                      Próxima
                     </Button>
                   </div>
                 </div>

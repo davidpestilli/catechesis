@@ -13,7 +13,5 @@ select
   created_at,
   updated_at
 from public.comments;
-
 grant select on public.comments_public to anon, authenticated, service_role;
-
 revoke select on public.comments from anon, authenticated;

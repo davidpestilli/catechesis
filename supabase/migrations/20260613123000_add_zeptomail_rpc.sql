@@ -75,13 +75,10 @@ exception when others then
   );
 end;
 $$ language plpgsql security definer;
-
 comment on function public.enviar_email_zeptomail is
 'Envia email via API ZeptoMail e retorna um JSON com status/request_id.';
-
 grant execute on function public.enviar_email_zeptomail(text, text, text, text, text)
   to authenticated, service_role;
-
 create or replace function public.enviar_emails_zeptomail_lote(
   p_destinatarios text[],
   p_assunto text,
@@ -143,13 +140,10 @@ exception when others then
   );
 end;
 $$ language plpgsql security definer;
-
 comment on function public.enviar_emails_zeptomail_lote is
 'Envia emails em lote para múltiplos destinatários via ZeptoMail.';
-
 grant execute on function public.enviar_emails_zeptomail_lote(text[], text, text, text, text)
   to authenticated, service_role;
-
 create or replace function public.verificar_status_email(p_request_id bigint)
 returns jsonb as $$
 declare
@@ -182,6 +176,5 @@ begin
   );
 end;
 $$ language plpgsql security definer;
-
 grant execute on function public.verificar_status_email(bigint)
   to authenticated, service_role;

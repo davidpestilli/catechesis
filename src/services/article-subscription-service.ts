@@ -13,7 +13,7 @@ export const articleSubscriptionService = {
     input: ArticleCategorySubscriptionDraft,
   ): Promise<CreateArticleCategorySubscriptionResult> {
     if (!env.workerUrl) {
-      throw new Error('A URL do Worker nao foi configurada.')
+      throw new Error('A URL do Worker não foi configurada.')
     }
 
     const response = await fetch(`${env.workerUrl}/article-subscriptions`, {
@@ -29,7 +29,7 @@ export const articleSubscriptionService = {
       | null
 
     if (!response.ok) {
-      throw new Error(payload?.error ?? 'Nao foi possivel registrar sua inscricao.')
+      throw new Error(payload?.error ?? 'Não foi possível registrar sua inscrição.')
     }
 
     return {

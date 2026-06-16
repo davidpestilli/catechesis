@@ -22,7 +22,7 @@ export function EncounterAssetPage() {
   }
 
   if (!encounter) {
-    return <div className="px-4 py-16 text-stone-700">Carregando conteudo...</div>
+    return <div className="px-4 py-16 text-stone-700">Carregando conteúdo...</div>
   }
 
   const summaryContent = getEncounterSummaryContent(encounter)
@@ -73,7 +73,7 @@ export function EncounterAssetPage() {
                 <CardTitle>{title}</CardTitle>
               )}
               <CardDescription className={isSummaryPage ? 'mt-3 text-base leading-7 sm:text-lg' : 'mt-2'}>
-                {description || 'Texto de apoio publicado no proprio sistema.'}
+                {description || 'Texto de apoio publicado no próprio sistema.'}
               </CardDescription>
             </div>
           </div>

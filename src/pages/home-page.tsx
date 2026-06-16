@@ -5,7 +5,7 @@ export function HomePage() {
   const { data } = useCMSState()
 
   if (!data) {
-    return <div className="px-4 py-16 text-stone-700">Carregando conteudo...</div>
+    return <div className="px-4 py-16 text-stone-700">Carregando conteúdo...</div>
   }
 
   return (

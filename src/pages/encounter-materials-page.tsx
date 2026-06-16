@@ -65,7 +65,7 @@ export function EncounterMaterialsPage() {
           <div className="max-w-3xl">
             <h1 className="font-display text-4xl text-stone-900 sm:text-5xl">Materiais</h1>
             <CardDescription className="mt-3 text-base leading-7 sm:text-lg">
-              Links organizados para aprofundar o encontro com referencias visuais, leituras, videos e outros apoios.
+              Links organizados para aprofundar o encontro com referências visuais, leituras, vídeos e outros apoios.
             </CardDescription>
           </div>
 

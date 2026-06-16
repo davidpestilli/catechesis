@@ -20,7 +20,7 @@ export const landingImagePresets: LandingImagePreset[] = [
   {
     canonicalSrc: '/src/assets/landing/01-ai-basilica.png',
     src: hero01,
-    alt: 'Ilustracao luminosa de basilica para a abertura do Catequético.',
+    alt: 'Ilustração luminosa de basílica para a abertura do Catequético.',
     motion: 'drift-a',
   },
   {

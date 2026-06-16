@@ -32,7 +32,7 @@ export function EncounterQuizPage() {
       <section className="mx-auto max-w-3xl px-4 py-12">
         <FloatingBackButton to={`/encontros/${groupSlug}/${encounter.slug}`} label="Voltar ao encontro" />
         <Card className="mt-6">
-          <CardTitle>Quiz ainda nao cadastrado</CardTitle>
+          <CardTitle>Quiz ainda não cadastrado</CardTitle>
           <CardDescription className="mt-2">
             Use o painel interno para criar perguntas, alternativas e explicacoes deste encontro.
           </CardDescription>
@@ -125,7 +125,7 @@ export function EncounterQuizPage() {
             <div className="mt-5 rounded-[26px] bg-primary/10 p-5 text-stone-900">
               <p className="inline-flex items-center gap-2 text-lg font-semibold">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
-                Voce acertou {result.correct} de {result.total}.
+                Você acertou {result.correct} de {result.total}.
               </p>
             </div>
           ) : null}

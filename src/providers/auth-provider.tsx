@@ -247,7 +247,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           }
 
           throw new Error(
-            'Supabase ainda nao foi configurado. Para demonstracao local, use demo@catechesis.local / catechesis123.',
+            'Supabase ainda não foi configurado. Para demonstração local, use demo@catechesis.local / catechesis123.',
           )
         }
 
@@ -264,7 +264,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (!authUser?.id || !authEmail) {
           await client.auth.signOut()
-          throw new Error('Nao foi possivel validar o acesso deste usuario no Catequetico.')
+          throw new Error('Não foi possível validar o acesso deste usuário no Catequético.')
         }
 
         const nextUser = await loadCatequeticoUser({
@@ -275,7 +275,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (!nextUser) {
           await client.auth.signOut()
-          throw new Error('Este usuario nao possui acesso ao Catequetico.')
+          throw new Error('Este usuário não possui acesso ao Catequético.')
         }
 
         setUser(nextUser)

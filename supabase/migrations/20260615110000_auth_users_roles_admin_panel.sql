@@ -14,7 +14,6 @@ begin
   end if;
 end
 $$;
-
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
@@ -24,7 +23,6 @@ create table if not exists public.users (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
-
 alter table public.users
   add column if not exists email text,
   add column if not exists nome text not null default '',
@@ -32,10 +30,8 @@ alter table public.users
   add column if not exists ativo boolean not null default true,
   add column if not exists created_at timestamptz not null default timezone('utc', now()),
   add column if not exists updated_at timestamptz not null default timezone('utc', now());
-
 create unique index if not exists users_email_lower_idx
   on public.users (lower(email));
-
 create or replace function public.set_row_updated_at()
 returns trigger
 language plpgsql
@@ -45,13 +41,11 @@ begin
   return new;
 end;
 $$;
-
 drop trigger if exists trg_users_set_updated_at on public.users;
 create trigger trg_users_set_updated_at
 before update on public.users
 for each row
 execute function public.set_row_updated_at();
-
 create or replace function public.normalize_user_role(p_role text)
 returns public.user_role
 language plpgsql
@@ -65,7 +59,6 @@ begin
   return 'catequista'::public.user_role;
 end;
 $$;
-
 create or replace function public.bootstrap_catechesis_role()
 returns public.user_role
 language plpgsql
@@ -87,7 +80,6 @@ begin
   return 'catequista'::public.user_role;
 end;
 $$;
-
 create or replace function public.handle_auth_user_profile()
 returns trigger
 language plpgsql
@@ -119,13 +111,11 @@ begin
   return new;
 end;
 $$;
-
 drop trigger if exists on_auth_user_profile_created on auth.users;
 create trigger on_auth_user_profile_created
 after insert or update on auth.users
 for each row
 execute function public.handle_auth_user_profile();
-
 create or replace function public.is_admin(p_user_id uuid default auth.uid())
 returns boolean
 language sql
@@ -141,7 +131,6 @@ as $$
       and u.role = 'admin'
   );
 $$;
-
 create or replace function public.is_editor(p_user_id uuid default auth.uid())
 returns boolean
 language sql
@@ -156,16 +145,13 @@ as $$
       and u.ativo = true
   );
 $$;
-
 alter table public.users enable row level security;
-
 drop policy if exists "users_select_own_or_admin" on public.users;
 create policy "users_select_own_or_admin"
 on public.users
 for select
 to authenticated
 using (id = auth.uid() or public.is_admin(auth.uid()));
-
 drop policy if exists "encounters_write_authenticated" on public.encounters;
 create policy "encounters_write_authenticated"
 on public.encounters
@@ -173,7 +159,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "assets_write_authenticated" on public.encounter_assets;
 create policy "assets_write_authenticated"
 on public.encounter_assets
@@ -181,7 +166,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "quizzes_write_authenticated" on public.quizzes;
 create policy "quizzes_write_authenticated"
 on public.quizzes
@@ -189,7 +173,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "questions_write_authenticated" on public.quiz_questions;
 create policy "questions_write_authenticated"
 on public.quiz_questions
@@ -197,7 +180,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "options_write_authenticated" on public.quiz_options;
 create policy "options_write_authenticated"
 on public.quiz_options
@@ -205,7 +187,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "articles_write_authenticated" on public.articles;
 create policy "articles_write_authenticated"
 on public.articles
@@ -213,7 +194,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "settings_write_authenticated" on public.site_settings;
 create policy "settings_write_authenticated"
 on public.site_settings
@@ -221,7 +201,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "class_groups_write_authenticated" on public.class_groups;
 create policy "class_groups_write_authenticated"
 on public.class_groups
@@ -229,7 +208,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "useful_links_write_authenticated" on public.useful_links;
 create policy "useful_links_write_authenticated"
 on public.useful_links
@@ -237,7 +215,6 @@ for all
 to authenticated
 using (public.is_editor(auth.uid()))
 with check (public.is_editor(auth.uid()));
-
 drop policy if exists "catechesis_media_authenticated_write" on storage.objects;
 create policy "catechesis_media_authenticated_write"
 on storage.objects
@@ -245,15 +222,12 @@ for all
 to authenticated
 using (bucket_id = 'catechesis-media' and public.is_editor(auth.uid()))
 with check (bucket_id = 'catechesis-media' and public.is_editor(auth.uid()));
-
 alter table public.comments
   drop constraint if exists comments_author_kind_check,
   drop constraint if exists comments_subscription_email_check;
-
 alter table public.comments
   add constraint comments_author_kind_check
   check (author_kind in ('guest', 'admin', 'catequista'));
-
 alter table public.comments
   add constraint comments_subscription_email_check
   check (
@@ -261,7 +235,6 @@ alter table public.comments
     or author_kind in ('admin', 'catequista')
     or author_email is not null
   );
-
 insert into public.users (id, email, nome, role, ativo)
 select
   au.id,

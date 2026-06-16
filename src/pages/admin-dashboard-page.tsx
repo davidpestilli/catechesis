@@ -369,7 +369,7 @@ export function AdminDashboardPage() {
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-stone-500">
-            gestao de conteudo
+            gestão de conteúdo
           </p>
         </div>
       </div>
@@ -381,7 +381,7 @@ export function AdminDashboardPage() {
           <TabsTrigger className="shrink-0" value="assets">Materiais</TabsTrigger>
           <TabsTrigger className="shrink-0" value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger className="shrink-0" value="slideshow">Slideshow</TabsTrigger>
-          {user?.role === 'admin' ? <TabsTrigger className="shrink-0" value="users">Usuarios</TabsTrigger> : null}
+          {user?.role === 'admin' ? <TabsTrigger className="shrink-0" value="users">Usuários</TabsTrigger> : null}
           <TabsTrigger className="shrink-0" value="misc">Diversos</TabsTrigger>
         </TabsList>
 
@@ -409,7 +409,7 @@ export function AdminDashboardPage() {
             <Card>
               <CardTitle>{groupForm.name ? 'Editar turma' : 'Criar nova turma'}</CardTitle>
               <CardDescription className="mt-2">
-                Cada turma concentra seus proprios encontros e exibe um brado proprio na pagina publica.
+                Cada turma concentra seus próprios encontros e exibe um brado próprio na página pública.
               </CardDescription>
               <div className="mt-5 grid gap-4">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -496,7 +496,7 @@ export function AdminDashboardPage() {
                   >
                     <p className="font-semibold text-stone-900">{encounter.title}</p>
                     <p className="mt-1 text-sm text-stone-600">
-                      {groupNameById.get(encounter.groupId) || 'Turma nao localizada'}
+                      {groupNameById.get(encounter.groupId) || 'Turma não localizada'}
                     </p>
                   </button>
                 ))}
@@ -510,7 +510,7 @@ export function AdminDashboardPage() {
               <div className="mt-6 space-y-5">
                 <AdminFormSection
                   title="Identidade do encontro"
-                  description="Defina a turma, o titulo e o tema do encontro. O link interno e gerado automaticamente a partir do titulo."
+                  description="Defina a turma, o título e o tema do encontro. O link interno é gerado automaticamente a partir do título."
                 >
                   <div className="space-y-2">
                     <Label>Turma</Label>
@@ -529,7 +529,7 @@ export function AdminDashboardPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Titulo</Label>
+                    <Label>Título</Label>
                     <Input
                       value={encounterForm.title}
                       onChange={(event) =>
@@ -549,8 +549,8 @@ export function AdminDashboardPage() {
                 </AdminFormSection>
 
                 <AdminFormSection
-                  title="Apresentacao"
-                  description="Resumo e capa ficam juntos para facilitar a revisao do material antes de publicar."
+                  title="Apresentação"
+                  description="Resumo e capa ficam juntos para facilitar a revisão do material antes de publicar."
                 >
                   <div className="space-y-2">
                     <Label>Resumo curto</Label>
@@ -617,7 +617,7 @@ export function AdminDashboardPage() {
                         {encounterForm.title ? 'Pronto para atualizar o encontro.' : 'Pronto para criar o encontro.'}
                       </p>
                       <p className="text-xs text-stone-500">
-                        Salve depois de revisar titulo, capa e HTML do conteudo.
+                        Salve depois de revisar título, capa e HTML do conteúdo.
                       </p>
                     </div>
                     <Button
@@ -637,7 +637,7 @@ export function AdminDashboardPage() {
         <TabsContent value="assets">
           <div className="grid gap-6 lg:grid-cols-[0.88fr_1.12fr]">
             <Card>
-              <CardTitle>Materiais ja cadastrados</CardTitle>
+              <CardTitle>Materiais já cadastrados</CardTitle>
               <div className="mt-5 space-y-4">
                 {encounterOptions.flatMap((encounter) =>
                   encounter.assets.map((asset) => (
@@ -670,7 +670,7 @@ export function AdminDashboardPage() {
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-stone-700">
                   <p className="font-semibold text-stone-900">Como este bloco funciona</p>
                   <p className="mt-1">
-                    O resumo em HTML continua na aba <strong>Encontros</strong>. Aqui voce escolhe entre um arquivo de resumo para download ou links que aparecerao no modal <strong>Materiais</strong>.
+                    O resumo em HTML continua na aba <strong>Encontros</strong>. Aqui você escolhe entre um arquivo de resumo para download ou links que aparecerão no modal <strong>Materiais</strong>.
                   </p>
                 </div>
                 <AdminFormSection
@@ -724,18 +724,18 @@ export function AdminDashboardPage() {
                 </AdminFormSection>
 
                 <AdminFormSection
-                  title="Conteudo e exibicao"
-                  description="Defina o titulo, a categoria visual do material e os textos de apoio com mais espaco para leitura."
+                  title="Conteúdo e exibição"
+                  description="Defina o título, a categoria visual do material e os textos de apoio com mais espaço para leitura."
                 >
                   <div className="grid gap-5 md:grid-cols-2">
                     <AdminField
-                      label="Titulo"
+                      label="Título"
                       hint={isSupportLink ? 'Este nome aparece no card do modal publico.' : 'Use um nome claro para o download.'}
                     >
                       <Input
                         value={assetForm.title}
                         onChange={(event) => setAssetForm((current) => ({ ...current, title: event.target.value }))}
-                        placeholder={isSupportLink ? 'Nome exibido para o link' : 'Nome do arquivo para o usuario'}
+                        placeholder={isSupportLink ? 'Nome exibido para o link' : 'Nome do arquivo para o usuário'}
                       />
                     </AdminField>
 
@@ -789,7 +789,7 @@ export function AdminDashboardPage() {
                     </AdminField>
 
                     <AdminField
-                      label="Descricao"
+                      label="Descrição"
                       hint="Um texto curto ajuda a pessoa a entender por que vale abrir este material."
                     >
                       <Textarea
@@ -815,7 +815,7 @@ export function AdminDashboardPage() {
                         {isSupportLink ? 'Pronto para salvar o link do modal Materiais.' : 'Pronto para salvar o arquivo de download.'}
                       </p>
                       <p className="text-xs text-stone-500">
-                        Revise encontro, tipo, titulo e descricao antes de publicar.
+                        Revise encontro, tipo, título e descrição antes de publicar.
                       </p>
                     </div>
                     <Button
@@ -836,7 +836,7 @@ export function AdminDashboardPage() {
           <Card>
             <CardTitle>Quiz do encontro</CardTitle>
             <CardDescription className="mt-2">
-              Cada pergunta recebe cinco alternativas, uma correta e explicacao exibida apos o envio.
+              Cada pergunta recebe cinco alternativas, uma correta e explicação exibida após o envio.
             </CardDescription>
             <div className="mt-5 grid gap-4">
               <div className="space-y-2">
@@ -855,14 +855,14 @@ export function AdminDashboardPage() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Titulo do quiz</Label>
+                  <Label>Título do quiz</Label>
                   <Input
                     value={quizForm.title}
                     onChange={(event) => setQuizForm((current) => ({ ...current, title: event.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descricao</Label>
+                  <Label>Descrição</Label>
                   <Input
                     value={quizForm.description}
                     onChange={(event) =>
@@ -937,7 +937,7 @@ export function AdminDashboardPage() {
                     ))}
                   </div>
                   <div className="mt-4 space-y-2">
-                    <Label>Explicacao apos a resposta</Label>
+                    <Label>Explicação após a resposta</Label>
                     <Textarea
                       value={question.explanation}
                       onChange={(event) =>
@@ -986,13 +986,13 @@ export function AdminDashboardPage() {
           <Card>
             <CardTitle>Imagens do slideshow</CardTitle>
             <CardDescription className="mt-2">
-              Administre as imagens da abertura da home sem mexer em codigo. A ordem aqui e a ordem exibida no banner.
+              Administre as imagens da abertura da home sem mexer em código. A ordem aqui é a ordem exibida no banner.
             </CardDescription>
             <div className="mt-6 space-y-5">
               <div className="rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-stone-700">
                 <p className="font-semibold text-stone-900">Como este bloco funciona</p>
                 <p className="mt-1">
-                  Voce pode enviar uma nova imagem, colar uma URL publica, ajustar o texto alternativo e escolher o movimento de cada slide. Se a lista ficar vazia, a home volta a usar o conjunto padrao do projeto.
+                  Você pode enviar uma nova imagem, colar uma URL pública, ajustar o texto alternativo e escolher o movimento de cada slide. Se a lista ficar vazia, a home volta a usar o conjunto padrão do projeto.
                 </p>
               </div>
 
@@ -1071,7 +1071,7 @@ export function AdminDashboardPage() {
                             >
                               <AdminField
                                 label="URL da imagem"
-                                hint="Se voce preencher uma URL e tambem enviar um arquivo, o arquivo enviado sera usado no salvamento."
+                                hint="Se você preencher uma URL e também enviar um arquivo, o arquivo enviado será usado no salvamento."
                               >
                                 <Input
                                   value={slide.src}
@@ -1095,7 +1095,7 @@ export function AdminDashboardPage() {
                                 />
                                 {pendingSlideFiles[slide.id] ? (
                                   <p className="text-xs text-stone-500">
-                                    Nova imagem selecionada. Ela sera enviada quando voce clicar em salvar.
+                                    Nova imagem selecionada. Ela será enviada quando você clicar em salvar.
                                   </p>
                                 ) : null}
                               </AdminField>
@@ -1145,7 +1145,7 @@ export function AdminDashboardPage() {
                 </div>
               ) : (
                 <div className="rounded-[24px] border border-dashed border-stone-300 bg-white/70 p-6 text-sm leading-6 text-stone-600">
-                  Nenhum slide personalizado foi salvo. Ao adicionar e salvar pelo menos uma imagem aqui, a home passa a usar esta lista no lugar do conjunto padrao.
+                  Nenhum slide personalizado foi salvo. Ao adicionar e salvar pelo menos uma imagem aqui, a home passa a usar esta lista no lugar do conjunto padrão.
                 </div>
               )}
 
@@ -1160,7 +1160,7 @@ export function AdminDashboardPage() {
                     <p className="text-sm font-semibold text-stone-800">
                       {settingsForm.landingImages.length > 0
                         ? 'Pronto para atualizar o slideshow da home.'
-                        : 'Sem slides personalizados. O fallback padrao sera mantido.'}
+                        : 'Sem slides personalizados. O fallback padrão será mantido.'}
                     </p>
                     <p className="text-xs text-stone-500">
                       Salve para publicar a ordem, os textos alternativos e as novas imagens enviadas.

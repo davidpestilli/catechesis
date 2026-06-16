@@ -9,14 +9,20 @@ export const articleCategoryOptions: {
   {
     value: 'general',
     label: 'Gerais',
-    description: 'Artigos de temas variados para formacao e apoio pastoral.',
+    description: 'Artigos de temas variados para formação e apoio pastoral.',
     folderSlug: 'gerais',
   },
   {
     value: 'saints-life',
     label: 'Vida dos Santos',
-    description: 'Artigos dedicados a historias, testemunhos e espiritualidade dos santos.',
+    description: 'Artigos dedicados a histórias, testemunhos e espiritualidade dos santos.',
     folderSlug: 'vida-dos-santos',
+  },
+  {
+    value: 'biblical',
+    label: 'Bíblica',
+    description: 'Artigos dedicados ao estudo da Sagrada Escritura e sua leitura na catequese.',
+    folderSlug: 'biblica',
   },
 ]
 
@@ -25,7 +31,11 @@ const articleCategoryMeta = new Map(
 )
 
 export function normalizeArticleCategory(value: unknown): ArticleCategory {
-  return value === 'saints-life' ? 'saints-life' : 'general'
+  if (value === 'saints-life' || value === 'biblical') {
+    return value
+  }
+
+  return 'general'
 }
 
 export function getArticleCategoryMeta(category: ArticleCategory) {

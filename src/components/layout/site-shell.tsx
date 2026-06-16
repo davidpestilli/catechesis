@@ -92,7 +92,7 @@ export function SiteShell() {
               )}
             >
               <div className="mb-2 px-3 pt-1 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-stone-500">
-                Navegacao
+                Navegação
               </div>
               <div className="space-y-1">
                 {[...navigation, utilityItem].map(({ to, label, icon: Icon }) => (

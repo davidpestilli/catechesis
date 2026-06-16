@@ -7,10 +7,8 @@ create table if not exists public.class_groups (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
-
 alter table public.encounters
 add column if not exists class_group_id uuid references public.class_groups(id);
-
 with distinct_groups as (
   select
     coalesce(nullif(trim(audience), ''), 'Turma geral') as group_name,
@@ -37,13 +35,11 @@ select
   group_order
 from distinct_groups
 on conflict (name) do nothing;
-
 update public.encounters as encounter
 set class_group_id = class_groups.id
 from public.class_groups as class_groups
 where encounter.class_group_id is null
   and class_groups.name = coalesce(nullif(trim(encounter.audience), ''), 'Turma geral');
-
 update public.encounters
 set class_group_id = (
   select id
@@ -52,12 +48,9 @@ set class_group_id = (
   limit 1
 )
 where class_group_id is null;
-
 alter table public.encounters
 alter column class_group_id set not null;
-
 alter table public.class_groups enable row level security;
-
 drop policy if exists "class_groups_public_read" on public.class_groups;
 create policy "class_groups_public_read" on public.class_groups for select using (true);
 drop policy if exists "class_groups_write_authenticated" on public.class_groups;

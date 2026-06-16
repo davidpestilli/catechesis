@@ -68,7 +68,7 @@ export function DiversosPanel() {
   }, [data])
 
   if (!data) {
-    return <div className="px-4 py-16 text-stone-700">Carregando conteudos diversos...</div>
+    return <div className="px-4 py-16 text-stone-700">Carregando conteúdos diversos...</div>
   }
 
   const articleSources = articleForm.sources.length > 0 ? articleForm.sources : ['']
@@ -125,9 +125,9 @@ export function DiversosPanel() {
         ...emptyUsefulLink(),
         order: usefulLinks.length + 1,
       })
-      toast.success('Link util salvo.')
+      toast.success('Link útil salvo.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nao foi possivel salvar o link util.'
+      const message = error instanceof Error ? error.message : 'Não foi possível salvar o link útil.'
       toast.error(message)
     }
   }
@@ -144,7 +144,7 @@ export function DiversosPanel() {
           <Card>
             <CardTitle>Artigos publicados</CardTitle>
             <CardDescription className="mt-2">
-              Selecione um artigo para editar ou acompanhe em qual pasta ele sera exibido.
+              Selecione um artigo para editar ou acompanhe em qual pasta ele será exibido.
             </CardDescription>
             <div className="mt-5 space-y-3">
               {data.articles.map((article) => {
@@ -171,12 +171,12 @@ export function DiversosPanel() {
           <Card>
             <CardTitle>{articleForm.title ? 'Editar artigo' : 'Novo artigo'}</CardTitle>
             <CardDescription className="mt-2">
-              O editor rico segue o mesmo padrao do sistema, agora com escolha explicita da pasta do artigo.
+              O editor rico segue o mesmo padrão do sistema, agora com escolha explícita da pasta do artigo.
             </CardDescription>
             <div className="mt-5 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Titulo</Label>
+                  <Label>Título</Label>
                   <Input
                     value={articleForm.title}
                     onChange={(event) =>
@@ -274,7 +274,7 @@ export function DiversosPanel() {
                         />
                       ) : (
                         <div className="mt-2 flex aspect-[16/9] items-center justify-center rounded-[18px] bg-stone-100 px-4 text-center text-sm text-stone-500">
-                          Esta imagem aparece nos cards de selecao dos artigos.
+                          Esta imagem aparece nos cards de seleção dos artigos.
                         </div>
                       )}
                     </div>
@@ -310,7 +310,7 @@ export function DiversosPanel() {
               </div>
 
               <div className="space-y-2">
-                <Label>Conteudo</Label>
+                <Label>Conteúdo</Label>
                 <RichTextEditor
                   value={articleForm.contentHtml}
                   onChange={(contentHtml) =>
@@ -324,7 +324,7 @@ export function DiversosPanel() {
                   <div>
                     <Label>Fontes</Label>
                     <p className="mt-1 text-sm text-stone-600">
-                      As fontes informadas aqui serao exibidas ao final do artigo.
+                      As fontes informadas aqui serão exibidas ao final do artigo.
                     </p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addArticleSource}>
@@ -369,7 +369,7 @@ export function DiversosPanel() {
           <Card>
             <CardTitle>Links publicados</CardTitle>
             <CardDescription className="mt-2">
-              Estes links aparecem na visualizacao publica de Links Uteis.
+              Estes links aparecem na visualização pública de Links Úteis.
             </CardDescription>
             <div className="mt-5 space-y-3">
               {usefulLinks.map((usefulLink) => (
@@ -390,14 +390,14 @@ export function DiversosPanel() {
           </Card>
 
           <Card>
-            <CardTitle>{usefulLinkForm.title ? 'Editar link util' : 'Novo link util'}</CardTitle>
+            <CardTitle>{usefulLinkForm.title ? 'Editar link útil' : 'Novo link útil'}</CardTitle>
             <CardDescription className="mt-2">
               Este formulario segue a mesma logica do sistema para cadastros simples baseados em links.
             </CardDescription>
             <div className="mt-5 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Titulo</Label>
+                  <Label>Título</Label>
                   <Input
                     value={usefulLinkForm.title}
                     onChange={(event) =>
@@ -418,7 +418,7 @@ export function DiversosPanel() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Descricao</Label>
+                  <Label>Descrição</Label>
                   <Textarea
                     value={usefulLinkForm.description}
                     onChange={(event) =>
@@ -467,7 +467,7 @@ export function DiversosPanel() {
                   {usefulLinkForm.coverImageUrl ? (
                     <img
                       src={usefulLinkForm.coverImageUrl}
-                      alt="Preview da capa do link util"
+                      alt="Preview da capa do link útil"
                       referrerPolicy="no-referrer"
                       className="mt-3 aspect-[16/9] w-full rounded-[18px] object-cover"
                     />
@@ -495,7 +495,7 @@ export function DiversosPanel() {
               </div>
 
               <Button onClick={() => void handleSaveUsefulLink()} disabled={saveUsefulLink.isPending}>
-                {saveUsefulLink.isPending ? 'Salvando...' : 'Salvar link util'}
+                {saveUsefulLink.isPending ? 'Salvando...' : 'Salvar link útil'}
               </Button>
             </div>
           </Card>

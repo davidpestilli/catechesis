@@ -36,7 +36,7 @@ export function UsefulLinkCard({ usefulLink }: { usefulLink: UsefulLink }) {
       ) : usefulLink.coverImageUrl ? (
         <div className="mt-5 flex aspect-[16/9] items-center justify-center gap-2 rounded-[20px] border border-dashed border-stone-300 bg-stone-100/80 px-4 text-center text-sm text-stone-500">
           <ImageOff className="h-4 w-4 shrink-0" />
-          Nao foi possivel carregar a imagem desta referencia.
+          Não foi possível carregar a imagem desta referência.
         </div>
       ) : null}
 

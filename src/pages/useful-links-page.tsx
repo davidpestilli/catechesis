@@ -19,7 +19,7 @@ export function UsefulLinksPage() {
       <SectionTitle
         eyebrow="atalhos"
         title="Links Uteis"
-        body="Uma selecao de referencias externas para estudo, consulta e preparacao dos encontros."
+        body="Uma seleção de referências externas para estudo, consulta e preparação dos encontros."
       />
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -30,7 +30,7 @@ export function UsefulLinksPage() {
 
       {usefulLinks.length === 0 ? (
         <div className="rounded-[26px] border border-dashed border-stone-300 bg-white/70 p-6 text-sm leading-6 text-stone-600">
-          Nenhum link util foi publicado ainda.
+          Nenhum link útil foi publicado ainda.
         </div>
       ) : null}
     </section>

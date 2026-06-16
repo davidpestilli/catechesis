@@ -45,7 +45,7 @@ function mapManagedUser(row: ManagedUserRow): ManagedUser {
 
 async function request<T>(path: string, init: RequestInit = {}) {
   if (!env.workerUrl) {
-    throw new Error('A URL do Worker nao foi configurada.')
+    throw new Error('A URL do Worker não foi configurada.')
   }
 
   const token = await getAuthToken()
@@ -64,7 +64,7 @@ async function request<T>(path: string, init: RequestInit = {}) {
     throw new Error(
       payload && typeof payload === 'object' && 'error' in payload && payload.error
         ? payload.error
-        : 'Nao foi possivel concluir a operacao.',
+        : 'Não foi possível concluir a operação.',
     )
   }
 

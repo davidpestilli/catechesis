@@ -10,12 +10,12 @@ export const materialCategoryConfigs: MaterialCategoryConfig[] = [
   {
     key: 'video',
     label: 'Videos',
-    description: 'Aulas, testemunhos, palestras e conteudos em video.',
+    description: 'Aulas, testemunhos, palestras e conteúdos em vídeo.',
   },
   {
     key: 'image',
     label: 'Imagens',
-    description: 'Galerias, infograficos, ilustracoes e referencias visuais.',
+    description: 'Galerias, infográficos, ilustrações e referências visuais.',
   },
   {
     key: 'text',
@@ -30,7 +30,7 @@ export const materialCategoryConfigs: MaterialCategoryConfig[] = [
   {
     key: 'book',
     label: 'Livros',
-    description: 'Livros, e-books e referencias bibliograficas.',
+    description: 'Livros, e-books e referências bibliográficas.',
   },
 ]
 
