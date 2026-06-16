@@ -1,90 +1,124 @@
-import { BookOpen, Home, ScrollText } from 'lucide-react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Home, LogIn, Menu, ScrollText, X } from 'lucide-react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/providers/auth-provider'
 
 const navigation = [
-  { to: '/', label: 'Início', icon: Home, ornate: true },
-  { to: '/encontros', label: 'Turmas', icon: BookOpen, ornate: true },
-  { to: '/diversos', label: 'Diversos', icon: ScrollText, ornate: true },
+  { to: '/', label: 'Inicio', icon: Home },
+  { to: '/encontros', label: 'Turmas', icon: BookOpen },
+  { to: '/diversos', label: 'Diversos', icon: ScrollText },
 ]
 
 export function SiteShell() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+  const location = useLocation()
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [menuOpen])
+
+  const utilityItem = {
+    to: isAuthenticated ? '/admin' : '/login',
+    label: isAuthenticated ? 'Painel' : 'Login',
+    icon: LogIn,
+  }
+
   return (
-    <div className="min-h-screen bg-ink-glow text-foreground">
-      <div className="fixed inset-x-0 top-0 z-50 overflow-hidden border-b border-stone-200/70 bg-[linear-gradient(180deg,rgba(251,247,235,0.96),rgba(245,238,222,0.84))] backdrop-blur-xl">
+    <div className="min-h-screen bg-ink-glow text-foreground" style={{ ['--site-header-height' as string]: '76px' }}>
+      <div className="fixed inset-x-0 top-0 z-50 overflow-visible border-b border-stone-200/70 bg-[linear-gradient(180deg,rgba(251,247,235,0.96),rgba(245,238,222,0.84))] backdrop-blur-xl">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(180,138,58,0.72),transparent)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(216,185,120,0.16),transparent_42%)]" />
-        <div className="absolute left-1/2 top-full h-16 w-56 -translate-x-1/2 -translate-y-8 rounded-full bg-amber-200/30 blur-3xl" />
+        <div className="absolute right-8 top-full h-14 w-40 -translate-y-7 rounded-full bg-amber-200/25 blur-3xl" />
 
-        <div className="relative mx-auto flex min-h-[122px] max-w-6xl flex-col gap-4 px-4 py-3 sm:px-6 md:min-h-[112px] md:flex-row md:items-center md:justify-between">
-          <Link to="/" className="self-center md:self-auto">
-            <div className="flex flex-col items-center rounded-[28px] border border-stone-200/80 bg-[rgba(255,252,246,0.72)] px-5 py-3 shadow-[0_14px_36px_rgba(68,49,20,0.08)] backdrop-blur md:items-start">
-              <span className="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-500">
-                Plataforma de catequese
-              </span>
-              <span className="mt-1 font-gothic text-[1.95rem] tracking-[0.08em] text-stone-900 sm:text-[2.15rem]">
+        <div className="relative mx-auto flex h-[76px] max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link to="/" className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-px bg-[linear-gradient(180deg,rgba(176,132,48,0.18),rgba(176,132,48,0.78),rgba(176,132,48,0.18))]" />
+              <span className="truncate font-gothic text-[1.85rem] tracking-[0.08em] text-stone-900 sm:text-[2rem]">
                 Catequético
               </span>
-              <span className="mt-2 h-px w-20 bg-[linear-gradient(90deg,transparent,rgba(176,132,48,0.8),transparent)] md:w-24 md:bg-[linear-gradient(90deg,rgba(176,132,48,0.8),transparent)]" />
             </div>
           </Link>
 
-          <div className="hidden items-center gap-2 rounded-full border border-stone-200/80 bg-white/55 p-2 shadow-[0_12px_30px_rgba(68,49,20,0.06)] backdrop-blur md:flex">
-            {navigation.map(({ to, label, ornate }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    'rounded-full px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100/90',
-                    isActive && 'bg-stone-900 text-stone-50 shadow-sm hover:bg-stone-900',
-                  )
-                }
-              >
-                <span
-                  className={cn(
-                    ornate
-                      ? 'font-gothic text-lg leading-none tracking-normal'
-                      : 'text-sm font-medium',
-                  )}
-                >
-                  {label}
-                </span>
-              </NavLink>
-            ))}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              aria-controls="site-header-menu"
+              aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+              onClick={() => setMenuOpen((value) => !value)}
+              className={cn(
+                'flex h-11 w-11 items-center justify-center rounded-full border border-stone-200/80 bg-white/65 text-stone-700 shadow-[0_12px_30px_rgba(68,49,20,0.07)] backdrop-blur transition',
+                menuOpen && 'border-stone-900 bg-stone-900 text-stone-50',
+              )}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+
+            <div
+              id="site-header-menu"
+              className={cn(
+                'absolute right-0 top-[calc(100%+0.75rem)] w-64 origin-top-right rounded-[24px] border border-stone-200/80 bg-[rgba(255,252,246,0.94)] p-3 shadow-[0_24px_60px_rgba(68,49,20,0.14)] backdrop-blur-xl transition duration-200',
+                menuOpen
+                  ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                  : 'pointer-events-none -translate-y-2 scale-95 opacity-0',
+              )}
+            >
+              <div className="mb-2 px-3 pt-1 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-stone-500">
+                Navegacao
+              </div>
+              <div className="space-y-1">
+                {[...navigation, utilityItem].map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-[18px] px-3 py-3 text-sm text-stone-700 transition hover:bg-stone-100/90',
+                        isActive && 'bg-stone-900 text-stone-50 shadow-sm hover:bg-stone-900',
+                      )
+                    }
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="font-medium">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <main className="pt-[122px] md:pt-[112px]">
+      <main style={{ paddingTop: 'var(--site-header-height)' }}>
         <Outlet />
       </main>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-[rgba(251,247,235,0.96)] px-3 py-2 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
-          {navigation.map(({ to, label, icon: Icon, ornate }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center rounded-2xl px-3 py-2 text-[11px] font-semibold text-stone-500',
-                  isActive && 'bg-stone-900 text-stone-50',
-                )
-              }
-            >
-              <Icon className="mb-1 h-4 w-4" />
-              <span
-                className={cn(
-                  ornate ? 'font-gothic text-[1.15rem] leading-none tracking-normal' : 'leading-none',
-                )}
-              >
-                {label}
-              </span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
     </div>
   )
 }

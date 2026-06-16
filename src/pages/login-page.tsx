@@ -33,7 +33,10 @@ export function LoginPage() {
   }
 
   return (
-    <section className="mx-auto flex min-h-[calc(100svh-78px)] max-w-4xl items-center px-4 py-12 pb-24">
+    <section
+      className="mx-auto flex max-w-4xl items-center px-4 py-12 pb-16"
+      style={{ minHeight: 'calc(100svh - var(--site-header-height, 76px))' }}
+    >
       <div className="grid gap-5 md:grid-cols-[1.05fr_0.95fr]">
         <Card className="bg-stone-900 text-stone-50">
           <BookLock className="h-9 w-9 text-amber-300" />
