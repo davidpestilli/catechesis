@@ -7,7 +7,7 @@ const sections = [
   {
     to: '/artigos',
     title: 'Artigos',
-    description: 'Abra a biblioteca de artigos e navegue pelas pastas Gerais, Vida dos Santos e Bíblica.',
+    description: 'Abra a biblioteca de artigos e navegue pelas pastas Gerais, Vida dos Santos, Bíblica e Catecismo.',
     icon: ScrollText,
   },
   {

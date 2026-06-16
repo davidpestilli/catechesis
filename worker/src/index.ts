@@ -27,7 +27,7 @@ interface GatewayEnv {
 type CommentContentType = 'article' | 'encounter'
 type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
-type ArticleCategory = 'general' | 'saints-life' | 'biblical'
+type ArticleCategory = 'general' | 'saints-life' | 'biblical' | 'catechism'
 type ArticleSubscriptionSource = 'manual_form'
 type UserRole = 'admin' | 'catequista'
 const CATEQUETICO_APP_CODE = 'catequetico'
@@ -275,6 +275,10 @@ const articleCategoryMeta = {
     label: 'Bíblica',
     folderSlug: 'biblica',
   },
+  catechism: {
+    label: 'Catecismo',
+    folderSlug: 'catecismo',
+  },
 } satisfies Record<ArticleCategory, { label: string; folderSlug: string }>
 
 function corsHeaders(origin: string | null, env: GatewayEnv) {
@@ -342,7 +346,12 @@ function buildAppThreadUrl(baseUrl: string, route: string, threadId: string) {
 }
 
 function normalizeArticleCategory(value?: string | null): ArticleCategory | null {
-  if (value === 'general' || value === 'saints-life' || value === 'biblical') {
+  if (
+    value === 'general' ||
+    value === 'saints-life' ||
+    value === 'biblical' ||
+    value === 'catechism'
+  ) {
     return value
   }
 

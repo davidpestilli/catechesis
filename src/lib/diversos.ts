@@ -24,6 +24,12 @@ export const articleCategoryOptions: {
     description: 'Artigos dedicados ao estudo da Sagrada Escritura e sua leitura na catequese.',
     folderSlug: 'biblica',
   },
+  {
+    value: 'catechism',
+    label: 'Catecismo',
+    description: 'Artigos dedicados ao estudo do Catecismo e de seus fundamentos para a catequese.',
+    folderSlug: 'catecismo',
+  },
 ]
 
 const articleCategoryMeta = new Map(
@@ -31,7 +37,7 @@ const articleCategoryMeta = new Map(
 )
 
 export function normalizeArticleCategory(value: unknown): ArticleCategory {
-  if (value === 'saints-life' || value === 'biblical') {
+  if (value === 'saints-life' || value === 'biblical' || value === 'catechism') {
     return value
   }
 
