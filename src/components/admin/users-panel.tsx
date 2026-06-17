@@ -56,6 +56,11 @@ export function UsersPanel() {
       return
     }
 
+    if (trimmedPassword.length < 6) {
+      toast.error('A senha inicial precisa ter pelo menos 6 caracteres.')
+      return
+    }
+
     try {
       const result = await createUser.mutateAsync({
         email: trimmedEmail,
@@ -150,6 +155,7 @@ export function UsersPanel() {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Defina a senha inicial"
             />
+            <p className="text-xs text-stone-500">Use pelo menos 6 caracteres.</p>
           </div>
 
           <div className="space-y-2">

@@ -248,6 +248,11 @@ interface AdminUserResponse {
   error?: {
     message?: string
   }
+  message?: string
+  msg?: string
+  code?: string
+  details?: string
+  hint?: string
 }
 
 interface CreateUserRequestBody {
@@ -410,6 +415,63 @@ async function parseJson<T>(request: Request) {
   }
 }
 
+function safeParseJson<T>(value: string) {
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return null
+  }
+}
+
+function extractErrorMessage(payload: unknown) {
+  if (!payload) return null
+
+  if (typeof payload === 'string') {
+    const message = payload.trim()
+    return message || null
+  }
+
+  if (typeof payload !== 'object') {
+    return null
+  }
+
+  const record = payload as {
+    message?: unknown
+    msg?: unknown
+    error?: unknown
+    details?: unknown
+    hint?: unknown
+    code?: unknown
+  }
+
+  const parts = [
+    typeof record.message === 'string' ? record.message.trim() : '',
+    typeof record.msg === 'string' ? record.msg.trim() : '',
+    typeof record.error === 'string' ? record.error.trim() : '',
+    typeof record.error === 'object' &&
+    record.error &&
+    'message' in record.error &&
+    typeof (record.error as { message?: unknown }).message === 'string'
+      ? ((record.error as { message?: string }).message ?? '').trim()
+      : '',
+    typeof record.details === 'string' ? record.details.trim() : '',
+    typeof record.hint === 'string' ? record.hint.trim() : '',
+    typeof record.code === 'string' ? `code ${record.code.trim()}` : '',
+  ].filter(Boolean)
+
+  return parts.length > 0 ? parts.join(' | ') : null
+}
+
+function buildRemoteErrorMessage(response: Response, payload: unknown, fallback: string) {
+  const remoteMessage = extractErrorMessage(payload)
+
+  if (remoteMessage) {
+    return `${fallback} ${remoteMessage}`
+  }
+
+  return `${fallback} Status ${response.status}.`
+}
+
 async function supabaseRest<T>(
   env: GatewayEnv,
   path: string,
@@ -436,10 +498,10 @@ async function supabaseRest<T>(
   const text = await response.text()
 
   if (text) {
-    data = JSON.parse(text) as T
+    data = safeParseJson<T>(text)
   }
 
-  return { response, data }
+  return { response, data, text }
 }
 
 async function supabaseRpc<T>(env: GatewayEnv, rpcName: string, payload: Record<string, unknown>) {
@@ -589,14 +651,20 @@ async function getCatequeticoUserById(env: GatewayEnv, userId: string) {
 }
 
 async function listCatequeticoUsers(env: GatewayEnv) {
-  const { response, data } = await supabaseRest<UserAppAccessRowRaw[]>(
+  const { response, data, text } = await supabaseRest<UserAppAccessRowRaw[]>(
     env,
     `/user_app_access?select=user_id,app_code,role,ativo,created_at,updated_at&app_code=eq.${CATEQUETICO_APP_CODE}&order=created_at.desc`,
     { method: 'GET' },
   )
 
   if (!response.ok || !Array.isArray(data)) {
-    throw new Error('Não foi possível carregar os usuários do Catequético.')
+    throw new Error(
+      buildRemoteErrorMessage(
+        response,
+        data ?? text,
+        'Não foi possível carregar os usuários do Catequético.',
+      ),
+    )
   }
 
   const accessRows = data.map(mapUserAppAccessRow)
@@ -606,14 +674,20 @@ async function listCatequeticoUsers(env: GatewayEnv) {
   }
 
   const userIds = accessRows.map((row) => row.user_id)
-  const { response: usersResponse, data: usersData } = await supabaseRest<SharedUserRowRaw[]>(
+  const { response: usersResponse, data: usersData, text: usersText } = await supabaseRest<SharedUserRowRaw[]>(
     env,
     `/users?select=id,email,nome,ativo,created_at,updated_at&id=in.(${userIds.join(',')})`,
     { method: 'GET' },
   )
 
   if (!usersResponse.ok || !Array.isArray(usersData)) {
-    throw new Error('Não foi possível carregar os perfis compartilhados dos usuários.')
+    throw new Error(
+      buildRemoteErrorMessage(
+        usersResponse,
+        usersData ?? usersText,
+        'Não foi possível carregar os perfis compartilhados dos usuários.',
+      ),
+    )
   }
 
   const sharedUsersById = new Map(
@@ -640,7 +714,7 @@ async function upsertSharedUserProfile(
   env: GatewayEnv,
   input: { id: string; email: string; name: string; active?: boolean },
 ) {
-  const { response, data } = await supabaseRest<SharedUserRowRaw[]>(
+  const { response, data, text } = await supabaseRest<SharedUserRowRaw[]>(
     env,
     '/users?on_conflict=id',
     {
@@ -658,7 +732,7 @@ async function upsertSharedUserProfile(
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Não foi possível salvar o perfil do usuário.')
+    throw new Error(buildRemoteErrorMessage(response, data ?? text, 'Não foi possível salvar o perfil do usuário.'))
   }
 
   return mapSharedUserRow(data[0])
@@ -668,7 +742,7 @@ async function upsertUserAppAccess(
   env: GatewayEnv,
   input: { userId: string; role: UserRole; active?: boolean },
 ) {
-  const { response, data } = await supabaseRest<UserAppAccessRowRaw[]>(
+  const { response, data, text } = await supabaseRest<UserAppAccessRowRaw[]>(
     env,
     '/user_app_access?on_conflict=user_id,app_code',
     {
@@ -686,14 +760,20 @@ async function upsertUserAppAccess(
   )
 
   if (!response.ok || !Array.isArray(data) || data.length === 0) {
-    throw new Error('Não foi possível salvar o acesso do usuário ao Catequético.')
+    throw new Error(
+      buildRemoteErrorMessage(
+        response,
+        data ?? text,
+        'Não foi possível salvar o acesso do usuário ao Catequético.',
+      ),
+    )
   }
 
   return mapUserAppAccessRow(data[0])
 }
 
 async function deleteUserAppAccess(env: GatewayEnv, userId: string) {
-  const { response } = await supabaseRest(
+  const { response, data, text } = await supabaseRest(
     env,
     `/user_app_access?app_code=eq.${CATEQUETICO_APP_CODE}&user_id=eq.${userId}`,
     {
@@ -702,13 +782,19 @@ async function deleteUserAppAccess(env: GatewayEnv, userId: string) {
   )
 
   if (!response.ok) {
-    throw new Error('Não foi possível remover o acesso do usuário ao Catequético.')
+    throw new Error(
+      buildRemoteErrorMessage(
+        response,
+        data ?? text,
+        'Não foi possível remover o acesso do usuário ao Catequético.',
+      ),
+    )
   }
 }
 
 async function createAuthUser(
   env: GatewayEnv,
-  input: { email: string; password: string; name: string },
+  input: { email: string; password: string; name: string; role: UserRole },
 ) {
   const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
@@ -723,6 +809,7 @@ async function createAuthUser(
       email_confirm: true,
       user_metadata: {
         name: input.name,
+        role: input.role,
       },
     }),
   })
@@ -730,7 +817,7 @@ async function createAuthUser(
   const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
 
   if (!response.ok || !payload?.user?.id) {
-    throw new Error(payload?.error?.message ?? 'Não foi possível criar o usuário no Auth.')
+    throw new Error(buildRemoteErrorMessage(response, payload, 'Não foi possível criar o usuário no Auth.'))
   }
 
   return payload.user
@@ -758,7 +845,7 @@ async function updateAuthUser(
   const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
 
   if (!response.ok || !payload?.user?.id) {
-    throw new Error(payload?.error?.message ?? 'Não foi possível atualizar o usuário no Auth.')
+    throw new Error(buildRemoteErrorMessage(response, payload, 'Não foi possível atualizar o usuário no Auth.'))
   }
 
   return payload.user
@@ -775,7 +862,7 @@ async function deleteAuthUser(env: GatewayEnv, userId: string) {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as AdminUserResponse | null
-    throw new Error(payload?.error?.message ?? 'Não foi possível excluir o usuário.')
+    throw new Error(buildRemoteErrorMessage(response, payload, 'Não foi possível excluir o usuário.'))
   }
 }
 
@@ -2040,6 +2127,7 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
       email,
       password,
       name,
+      role,
     })
 
     createdUserId = authUserRecord.id
