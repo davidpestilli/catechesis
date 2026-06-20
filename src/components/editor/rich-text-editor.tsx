@@ -169,6 +169,12 @@ export function RichTextEditor({
   }, [])
 
   useEffect(() => {
+    if (!mounted) return
+
+    document.execCommand('defaultParagraphSeparator', false, 'p')
+  }, [mounted])
+
+  useEffect(() => {
     if (!mounted || !editorRef.current) return
     if (editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value
@@ -423,12 +429,12 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,241,230,0.92))] text-stone-800 shadow-[0_18px_45px_rgba(74,61,35,0.09)] transition focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10',
+        'flex flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,241,230,0.92))] text-stone-800 shadow-[0_18px_45px_rgba(74,61,35,0.09)] transition focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10',
         disabled && 'opacity-75',
         className,
       )}
     >
-      <div className="border-b border-stone-200/90 bg-stone-50/80 px-3 py-3 md:px-4">
+      <div className="shrink-0 border-b border-stone-200/90 bg-stone-50/80 px-3 py-3 md:px-4">
         <div className="grid gap-3">
           <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
             <select
@@ -522,7 +528,7 @@ export function RichTextEditor({
         </div>
       </div>
 
-      <div className="bg-white">
+      <div className="min-h-0 max-h-[30rem] overflow-y-auto bg-white md:max-h-[40rem]">
         <div
           ref={editorRef}
           contentEditable={!disabled}
@@ -547,7 +553,7 @@ export function RichTextEditor({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-stone-50/70 px-4 py-3 text-xs text-stone-500">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-stone-50/70 px-4 py-3 text-xs text-stone-500">
         <span className="inline-flex items-center gap-2 font-medium">
           <Type className="h-3.5 w-3.5" />
           HTML publicado no próprio sistema

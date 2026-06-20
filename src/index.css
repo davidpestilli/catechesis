@@ -105,35 +105,57 @@
 
   .prose-catechesis h1,
   .prose-catechesis h2,
-  .prose-catechesis h3 {
+  .prose-catechesis h3,
+  .rich-text-editor-content h1,
+  .rich-text-editor-content h2,
+  .rich-text-editor-content h3 {
     @apply font-display text-stone-900;
     text-align: left;
   }
 
-  .prose-catechesis h2 {
+  .prose-catechesis h1,
+  .rich-text-editor-content h1 {
+    @apply mt-10 text-4xl;
+  }
+
+  .prose-catechesis h2,
+  .rich-text-editor-content h2 {
     @apply mt-8 text-3xl;
   }
 
-  .prose-catechesis p {
+  .prose-catechesis h3,
+  .rich-text-editor-content h3 {
+    @apply mt-6 text-2xl;
+  }
+
+  .prose-catechesis p,
+  .rich-text-editor-content p {
     @apply my-4;
   }
 
   .prose-catechesis ul,
-  .prose-catechesis ol {
+  .prose-catechesis ol,
+  .rich-text-editor-content ul,
+  .rich-text-editor-content ol {
     @apply my-4 pl-6;
   }
 
-  .prose-catechesis li {
+  .prose-catechesis li,
+  .rich-text-editor-content li {
     @apply my-2;
   }
 
-  .prose-catechesis blockquote {
+  .prose-catechesis blockquote,
+  .rich-text-editor-content blockquote {
     @apply my-6 rounded-[24px] border-l-4 border-primary bg-stone-100/80 px-5 py-4 italic text-stone-700;
   }
 
   .prose-catechesis img,
   .prose-catechesis video,
-  .prose-catechesis iframe {
+  .prose-catechesis iframe,
+  .rich-text-editor-content img,
+  .rich-text-editor-content video,
+  .rich-text-editor-content iframe {
     @apply my-6 rounded-[28px];
     display: block;
     margin-left: auto;
@@ -159,24 +181,12 @@
     margin-bottom: 0;
   }
 
-  .rich-text-editor-content p,
-  .rich-text-editor-content h1,
-  .rich-text-editor-content h2,
-  .rich-text-editor-content h3,
-  .rich-text-editor-content ul,
-  .rich-text-editor-content ol,
-  .rich-text-editor-content blockquote,
   .rich-text-editor-content div {
     margin-bottom: 1rem;
   }
 
   .rich-text-editor-content blockquote {
-    border-left: 4px solid hsl(var(--primary));
-    border-radius: 1.5rem;
-    background: rgb(245 245 244 / 0.88);
-    padding: 1rem 1.25rem;
-    font-style: italic;
-    color: rgb(68 64 60);
+    text-align: left;
   }
 
   .rich-text-editor-content ul,
@@ -184,6 +194,7 @@
     padding-left: 1.5rem;
   }
 
+  .prose-catechesis a,
   .rich-text-editor-content a {
     color: hsl(var(--primary));
     text-decoration: underline;
