@@ -1,6 +1,6 @@
 import { Copy, MessageCircle, Share2 } from 'lucide-react'
 import DOMPurify from 'dompurify'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Navigate, useParams } from 'react-router-dom'
 import { CommentSection } from '@/components/comments/comment-section'
@@ -53,6 +53,10 @@ export function ArticleViewPage() {
   const { slug } = useParams()
   const { data } = useCMSState()
   const article = data?.articles.find((item) => item.slug === slug)
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 })
+  }, [slug])
 
   if (data && !article) {
     return <Navigate to="/artigos" replace />
