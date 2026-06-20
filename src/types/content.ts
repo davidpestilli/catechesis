@@ -3,6 +3,7 @@ export type AssetView = 'image' | 'pdf' | 'html' | 'video' | 'link'
 export type MaterialCategory = 'video' | 'image' | 'text' | 'website' | 'book'
 export type LandingImageMotion = 'drift-a' | 'drift-b' | 'drift-c'
 export type ArticleCategory = 'general' | 'saints-life' | 'biblical' | 'catechism'
+export type ArticleStatus = 'draft' | 'published'
 export type CommentContentType = 'article' | 'encounter'
 export type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 export type UserRole = 'admin' | 'catequista'
@@ -73,12 +74,14 @@ export interface Article {
   excerpt: string
   contentHtml: string
   category: ArticleCategory
+  status: ArticleStatus
   tags: string[]
   coverImageUrl?: string
   cardImageUrl?: string
   sources: string[]
   featured?: boolean
-  publishedAt: string
+  publishedAt: string | null
+  authorUserId?: string
 }
 
 export interface UsefulLink {

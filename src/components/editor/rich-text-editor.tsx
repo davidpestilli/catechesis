@@ -24,6 +24,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  disabled?: boolean
 }
 
 type TextAlignment = 'left' | 'center' | 'right' | 'justify'
@@ -154,6 +155,7 @@ export function RichTextEditor({
   onChange,
   placeholder = 'Digite ou cole o conteúdo aqui...',
   className,
+  disabled = false,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -422,6 +424,7 @@ export function RichTextEditor({
     <div
       className={cn(
         'overflow-hidden rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,241,230,0.92))] text-stone-800 shadow-[0_18px_45px_rgba(74,61,35,0.09)] transition focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10',
+        disabled && 'opacity-75',
         className,
       )}
     >
@@ -430,6 +433,7 @@ export function RichTextEditor({
           <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              disabled={disabled}
               onChange={(event) => {
                 exec('fontName', event.target.value)
               }}
@@ -444,6 +448,7 @@ export function RichTextEditor({
 
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              disabled={disabled}
               value={toolbarState.currentHeading}
               onChange={(event) => {
                 applyBlockFormat(event.target.value)
@@ -463,6 +468,7 @@ export function RichTextEditor({
                 <button
                   key={label}
                   type="button"
+                  disabled={disabled}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={action}
                   className={cn(
@@ -493,6 +499,7 @@ export function RichTextEditor({
                   type="color"
                   aria-label="Cor do texto"
                   value={toolbarState.currentColor}
+                  disabled={disabled}
                   onChange={(event) => {
                     exec('foreColor', event.target.value)
                   }}
@@ -500,6 +507,7 @@ export function RichTextEditor({
                 />
                 <button
                   type="button"
+                  disabled={disabled}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => exec('foreColor', getDefaultTextColor())}
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
@@ -517,7 +525,7 @@ export function RichTextEditor({
       <div className="bg-white">
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={!disabled}
           suppressContentEditableWarning
           onInput={emitChange}
           onBlur={() => {
@@ -531,7 +539,10 @@ export function RichTextEditor({
             persistSelection()
             syncToolbarState()
           }}
-          className="rich-text-editor-content min-h-[260px] w-full px-4 py-4 text-[15px] leading-7 text-stone-800 outline-none md:min-h-[340px] md:px-5"
+          className={cn(
+            'rich-text-editor-content min-h-[260px] w-full px-4 py-4 text-[15px] leading-7 text-stone-800 outline-none md:min-h-[340px] md:px-5',
+            disabled && 'cursor-not-allowed bg-stone-50/70',
+          )}
           data-placeholder={placeholder}
         />
       </div>
@@ -552,6 +563,7 @@ export function RichTextEditor({
         ref={imageInputRef}
         type="file"
         accept="image/*"
+        disabled={disabled}
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0]
@@ -563,6 +575,7 @@ export function RichTextEditor({
         ref={videoInputRef}
         type="file"
         accept="video/*"
+        disabled={disabled}
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0]

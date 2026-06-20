@@ -2,16 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor/rich-text-editor'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { useCMSState, useSaveArticle, useSaveUsefulLink } from '@/hooks/use-cms'
-import { articleCategoryOptions, getArticleCategoryMeta } from '@/lib/diversos'
+import { useSaveArticle, useSaveUsefulLink } from '@/hooks/use-cms'
+import { articleCategoryOptions, getArticleCategoryMeta, getArticleStatusLabel } from '@/lib/diversos'
+import { useAuth } from '@/providers/auth-provider'
 import { createId, slugify } from '@/lib/utils'
-import type { Article, UsefulLink } from '@/types/content'
+import type { Article, CMSState, UsefulLink } from '@/types/content'
 
 const adminSelectClassName =
   'h-11 w-full rounded-2xl border border-input bg-white/90 px-4 text-sm text-stone-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -24,12 +26,13 @@ function emptyArticle(): Article {
     excerpt: '',
     contentHtml: '',
     category: 'general',
+    status: 'draft',
     tags: [],
     coverImageUrl: '',
     cardImageUrl: '',
     sources: [],
     featured: false,
-    publishedAt: new Date().toISOString(),
+    publishedAt: null,
   }
 }
 
@@ -45,15 +48,25 @@ function emptyUsefulLink(): UsefulLink {
   }
 }
 
-export function DiversosPanel() {
-  const { data } = useCMSState()
+export function DiversosPanel({ data }: { data: CMSState }) {
+  const { user } = useAuth()
   const saveArticle = useSaveArticle()
   const saveUsefulLink = useSaveUsefulLink()
   const [articleForm, setArticleForm] = useState<Article>(emptyArticle())
   const [usefulLinkForm, setUsefulLinkForm] = useState<UsefulLink>(emptyUsefulLink())
+  const isAdmin = user?.role === 'admin'
 
   const usefulLinks = useMemo(
     () => [...(data?.usefulLinks ?? [])].sort((first, second) => first.order - second.order),
+    [data],
+  )
+
+  const draftArticles = useMemo(
+    () => data.articles.filter((article) => article.status === 'draft'),
+    [data],
+  )
+  const publishedArticles = useMemo(
+    () => data.articles.filter((article) => article.status === 'published'),
     [data],
   )
 
@@ -67,11 +80,8 @@ export function DiversosPanel() {
     )
   }, [data])
 
-  if (!data) {
-    return <div className="px-4 py-16 text-stone-700">Carregando conteúdos diversos...</div>
-  }
-
   const articleSources = articleForm.sources.length > 0 ? articleForm.sources : ['']
+  const canEditSelectedArticle = isAdmin || articleForm.status === 'draft'
 
   function hydrateArticleForm(article: Article): Article {
     return {
@@ -104,15 +114,33 @@ export function DiversosPanel() {
     }))
   }
 
-  async function handleSaveArticle() {
-    await saveArticle.mutateAsync({
-      ...articleForm,
-      slug: slugify(articleForm.slug || articleForm.title),
-      tags: articleForm.tags,
-      sources: articleForm.sources.map((source) => source.trim()).filter(Boolean),
-    })
-    setArticleForm(emptyArticle())
-    toast.success('Artigo salvo.')
+  async function handleSaveArticle(status: Article['status']) {
+    const trimmedTitle = articleForm.title.trim()
+
+    if (!trimmedTitle) {
+      toast.error('Informe o título para salvar o artigo.')
+      return
+    }
+
+    try {
+      const savedArticle = await saveArticle.mutateAsync({
+        ...articleForm,
+        title: trimmedTitle,
+        slug: slugify(articleForm.slug || trimmedTitle),
+        status,
+        tags: articleForm.tags,
+        sources: articleForm.sources.map((source) => source.trim()).filter(Boolean),
+        publishedAt: status === 'published' ? articleForm.publishedAt ?? new Date().toISOString() : null,
+      })
+
+      setArticleForm(hydrateArticleForm(savedArticle))
+      toast.success(
+        status === 'published' ? 'Artigo publicado.' : 'Rascunho salvo.',
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível salvar o artigo.'
+      toast.error(message)
+    }
   }
 
   async function handleSaveUsefulLink() {
@@ -142,36 +170,95 @@ export function DiversosPanel() {
       <TabsContent value="articles">
         <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <Card>
-            <CardTitle>Artigos publicados</CardTitle>
-            <CardDescription className="mt-2">
-              Selecione um artigo para editar ou acompanhe em qual pasta ele será exibido.
-            </CardDescription>
-            <div className="mt-5 space-y-3">
-              {data.articles.map((article) => {
-                const categoryMeta = getArticleCategoryMeta(article.category)
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>Artigos</CardTitle>
+                <CardDescription className="mt-2">
+                  Rascunhos ficam visíveis apenas para quem criou e para administradores. Publicados seguem no fluxo público normal.
+                </CardDescription>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setArticleForm(emptyArticle())}>
+                Novo rascunho
+              </Button>
+            </div>
+            <div className="mt-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Rascunhos</p>
+              <div className="mt-3 space-y-3">
+                {draftArticles.length > 0 ? (
+                  draftArticles.map((article) => {
+                    const categoryMeta = getArticleCategoryMeta(article.category)
 
-                return (
-                  <button
-                    key={article.id}
-                    type="button"
-                    onClick={() => setArticleForm(hydrateArticleForm(article))}
-                    className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left"
-                  >
-                    <p className="font-semibold text-stone-900">{article.title}</p>
-                    <p className="mt-1 text-sm text-stone-600">{article.excerpt}</p>
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                      Pasta: {categoryMeta.label}
-                    </p>
-                  </button>
-                )
-              })}
+                    return (
+                      <button
+                        key={article.id}
+                        type="button"
+                        onClick={() => setArticleForm(hydrateArticleForm(article))}
+                        className="w-full rounded-[22px] border border-amber-200 bg-amber-50/70 p-4 text-left"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-stone-900">{article.title}</p>
+                          <Badge className="bg-amber-200/80 text-amber-900">
+                            {getArticleStatusLabel(article.status)}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-stone-600">{article.excerpt || 'Sem resumo.'}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                          Pasta: {categoryMeta.label}
+                        </p>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <div className="rounded-[22px] border border-dashed border-stone-300 bg-stone-50 p-4 text-sm text-stone-600">
+                    Nenhum rascunho salvo ainda.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Publicados</p>
+              <div className="mt-3 space-y-3">
+                {publishedArticles.map((article) => {
+                  const categoryMeta = getArticleCategoryMeta(article.category)
+
+                  return (
+                    <button
+                      key={article.id}
+                      type="button"
+                      onClick={() => setArticleForm(hydrateArticleForm(article))}
+                      disabled={!isAdmin}
+                      className="w-full rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-left disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-stone-900">{article.title}</p>
+                        <Badge>{getArticleStatusLabel(article.status)}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-stone-600">{article.excerpt}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                        Pasta: {categoryMeta.label}
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
+              {!isAdmin ? (
+                <p className="mt-3 text-sm text-stone-500">
+                  Somente administradores podem editar ou despublicar artigos já publicados.
+                </p>
+              ) : null}
             </div>
           </Card>
 
           <Card>
-            <CardTitle>{articleForm.title ? 'Editar artigo' : 'Novo artigo'}</CardTitle>
+            <div className="flex flex-wrap items-center gap-3">
+              <CardTitle>{articleForm.title ? 'Editar artigo' : 'Novo artigo'}</CardTitle>
+              <Badge className={articleForm.status === 'draft' ? 'bg-amber-200/80 text-amber-900' : ''}>
+                {getArticleStatusLabel(articleForm.status)}
+              </Badge>
+            </div>
             <CardDescription className="mt-2">
-              O editor rico segue o mesmo padrão do sistema, agora com escolha explícita da pasta do artigo.
+              O editor rico segue o mesmo padrão do sistema, agora separando rascunho de publicação.
             </CardDescription>
             <div className="mt-5 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -182,6 +269,7 @@ export function DiversosPanel() {
                     onChange={(event) =>
                       setArticleForm((current) => ({ ...current, title: event.target.value }))
                     }
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
                 <div className="space-y-2">
@@ -191,6 +279,7 @@ export function DiversosPanel() {
                     onChange={(event) =>
                       setArticleForm((current) => ({ ...current, slug: event.target.value }))
                     }
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
               </div>
@@ -207,6 +296,7 @@ export function DiversosPanel() {
                       }))
                     }
                     className={adminSelectClassName}
+                    disabled={!canEditSelectedArticle}
                   >
                     {articleCategoryOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -224,6 +314,7 @@ export function DiversosPanel() {
                       setArticleForm((current) => ({ ...current, coverImageUrl: event.target.value }))
                     }
                     placeholder="https://..."
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
               </div>
@@ -237,6 +328,7 @@ export function DiversosPanel() {
                       setArticleForm((current) => ({ ...current, cardImageUrl: event.target.value }))
                     }
                     placeholder="https://..."
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
                 <div className="rounded-[22px] border border-dashed border-stone-300 bg-white/75 p-3">
@@ -290,6 +382,7 @@ export function DiversosPanel() {
                     onChange={(event) =>
                       setArticleForm((current) => ({ ...current, excerpt: event.target.value }))
                     }
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
                 <div className="space-y-2">
@@ -305,6 +398,7 @@ export function DiversosPanel() {
                           .filter(Boolean),
                       }))
                     }
+                    disabled={!canEditSelectedArticle}
                   />
                 </div>
               </div>
@@ -316,6 +410,7 @@ export function DiversosPanel() {
                   onChange={(contentHtml) =>
                     setArticleForm((current) => ({ ...current, contentHtml }))
                   }
+                  disabled={!canEditSelectedArticle}
                 />
               </div>
 
@@ -327,7 +422,13 @@ export function DiversosPanel() {
                       As fontes informadas aqui serão exibidas ao final do artigo.
                     </p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addArticleSource}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addArticleSource}
+                    disabled={!canEditSelectedArticle}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Adicionar fonte
                   </Button>
@@ -339,13 +440,14 @@ export function DiversosPanel() {
                         value={source}
                         onChange={(event) => updateArticleSource(index, event.target.value)}
                         placeholder="URL, livro, documento, autor..."
+                        disabled={!canEditSelectedArticle}
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => removeArticleSource(index)}
-                        disabled={articleSources.length === 1 && !source}
+                        disabled={!canEditSelectedArticle || (articleSources.length === 1 && !source)}
                         className="shrink-0"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -356,9 +458,43 @@ export function DiversosPanel() {
                 </div>
               </div>
 
-              <Button onClick={() => void handleSaveArticle()} disabled={saveArticle.isPending}>
-                {saveArticle.isPending ? 'Salvando...' : 'Salvar artigo'}
-              </Button>
+              {canEditSelectedArticle ? (
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleSaveArticle('draft')}
+                    disabled={saveArticle.isPending}
+                    className="md:flex-1"
+                  >
+                    {saveArticle.isPending
+                      ? articleForm.status === 'published'
+                        ? 'Despublicando...'
+                        : 'Salvando...'
+                      : articleForm.status === 'published'
+                        ? 'Despublicar'
+                        : 'Salvar rascunho'}
+                  </Button>
+                  {isAdmin ? (
+                    <Button
+                      onClick={() => void handleSaveArticle('published')}
+                      disabled={saveArticle.isPending}
+                      className="md:flex-1"
+                    >
+                      {saveArticle.isPending
+                        ? articleForm.status === 'published'
+                          ? 'Atualizando...'
+                          : 'Publicando...'
+                        : articleForm.status === 'published'
+                          ? 'Atualizar publicado'
+                          : 'Publicar'}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+                  Este artigo está publicado. Apenas administradores podem alterá-lo ou devolvê-lo para rascunho.
+                </div>
+              )}
             </div>
           </Card>
         </div>

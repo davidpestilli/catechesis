@@ -286,6 +286,7 @@ export const defaultCMSState: CMSState = {
       title: 'Como organizar um encontro catequético',
       excerpt:
         'Um guia breve para preparar acolhida, proclamação da Palavra, dinâmica e envio com intencionalidade pastoral.',
+      status: 'published',
       publishedAt: new Date().toISOString(),
       category: 'general',
       featured: true,
@@ -304,6 +305,7 @@ export const defaultCMSState: CMSState = {
       title: 'São Francisco de Assis e a alegria do Evangelho',
       excerpt:
         'Uma leitura breve sobre simplicidade, louvor e testemunho a partir da vida de São Francisco.',
+      status: 'published',
       publishedAt: new Date().toISOString(),
       category: 'saints-life',
       featured: false,

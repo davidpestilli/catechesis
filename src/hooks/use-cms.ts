@@ -10,10 +10,10 @@ import type {
   UsefulLink,
 } from '@/types/content'
 
-export function useCMSState() {
+export function useCMSState(options?: { includeDraftArticles?: boolean }) {
   return useQuery({
-    queryKey: ['cms-state'],
-    queryFn: () => cmsService.getState(),
+    queryKey: ['cms-state', options?.includeDraftArticles ? 'editor' : 'public'],
+    queryFn: () => cmsService.getState(options),
   })
 }
 

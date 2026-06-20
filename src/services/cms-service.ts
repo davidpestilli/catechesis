@@ -4,7 +4,7 @@ import {
   serializeLandingImageSrc,
 } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
-import { normalizeArticleCategory } from '@/lib/diversos'
+import { normalizeArticleCategory, normalizeArticleStatus } from '@/lib/diversos'
 import { env, hasSupabaseConfig } from '@/lib/env'
 import { ensureUuid, fileToDataUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -57,15 +57,19 @@ interface ArticleRow {
   excerpt?: string | null
   content_html: string
   category: string
+  status?: string | null
   tags?: string[] | null
   featured?: boolean | null
   cover_image_url?: string | null
   card_image_url?: string | null
   sources?: string[] | null
   published_at?: string | null
+  author_user_id?: string | null
 }
 
 function mapArticleRow(article: ArticleRow): Article {
+  const status = normalizeArticleStatus(article.status)
+
   return {
     id: article.id,
     slug: article.slug,
@@ -73,12 +77,14 @@ function mapArticleRow(article: ArticleRow): Article {
     excerpt: article.excerpt ?? '',
     contentHtml: article.content_html,
     category: normalizeArticleCategory(article.category),
+    status,
     tags: article.tags ?? [],
     featured: article.featured ?? false,
     coverImageUrl: article.cover_image_url ?? undefined,
     cardImageUrl: article.card_image_url ?? article.cover_image_url ?? undefined,
     sources: sanitizeArticleSources(article.sources),
-    publishedAt: article.published_at ?? new Date().toISOString(),
+    publishedAt: status === 'published' ? article.published_at ?? new Date().toISOString() : null,
+    authorUserId: article.author_user_id ?? undefined,
   }
 }
 
@@ -87,6 +93,13 @@ async function getAuthToken() {
 
   const { data } = await supabase.auth.getSession()
   return data.session?.access_token ?? null
+}
+
+async function getAuthUserId() {
+  if (!supabase) return null
+
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? null
 }
 
 async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
@@ -113,12 +126,13 @@ async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, '
       excerpt: article.excerpt,
       contentHtml: article.contentHtml,
       category: normalizeArticleCategory(article.category),
+      status: normalizeArticleStatus(article.status),
       tags: article.tags ?? [],
       featured: article.featured ?? false,
       coverImageUrl: article.coverImageUrl ?? '',
       cardImageUrl: article.cardImageUrl ?? article.coverImageUrl ?? '',
       sources: sanitizeArticleSources(article.sources),
-      publishedAt: article.publishedAt,
+      publishedAt: article.publishedAt ?? null,
     }),
   })
 
@@ -199,7 +213,7 @@ async function mapSupabaseState(): Promise<CMSState> {
       supabase.from('quizzes').select('*'),
       supabase.from('quiz_questions').select('*').order('order_index'),
       supabase.from('quiz_options').select('*').order('order_index'),
-      supabase.from('articles').select('*').order('published_at', { ascending: false }),
+      supabase.from('articles').select('*').eq('status', 'published').order('published_at', { ascending: false }),
       supabase.from('useful_links').select('*').order('order_index'),
       supabase.from('site_settings').select('*').eq('key', 'home').maybeSingle(),
     ])
@@ -335,14 +349,37 @@ async function uploadFile(file: File, folder: string) {
   return data.publicUrl
 }
 
+async function mapSupabaseEditorState(): Promise<CMSState> {
+  if (!supabase) {
+    return cloneDefaultState()
+  }
+
+  const state = await mapSupabaseState()
+  const { data: articlesData, error } = await supabase
+    .from('articles')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    console.error('Erro ao carregar articles editoriais:', error.message)
+    return state
+  }
+
+  return {
+    ...state,
+    articles: (articlesData ?? []).map((article) => mapArticleRow(article as ArticleRow)),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 export const cmsService = {
-  async getState() {
+  async getState(options?: { includeDraftArticles?: boolean }) {
     if (!hasSupabaseConfig || !supabase) {
       return getLocalCMSState()
     }
 
     try {
-      return await mapSupabaseState()
+      return options?.includeDraftArticles ? await mapSupabaseEditorState() : await mapSupabaseState()
     } catch {
       return getLocalCMSState()
     }
@@ -434,6 +471,14 @@ export const cmsService = {
       return saveArticleWithWorker(article)
     }
 
+    const authUserId = await getAuthUserId()
+
+    if (!authUserId) {
+      throw new Error('Sua sessão expirou. Faça login novamente para salvar o artigo.')
+    }
+
+    const normalizedStatus = normalizeArticleStatus(article.status)
+
     const payload = {
       id: ensureUuid(article.id),
       slug: article.slug,
@@ -441,12 +486,14 @@ export const cmsService = {
       excerpt: article.excerpt,
       content_html: article.contentHtml,
       category: normalizeArticleCategory(article.category),
+      status: normalizedStatus,
       tags: article.tags,
       featured: article.featured,
       cover_image_url: article.coverImageUrl,
       card_image_url: article.cardImageUrl,
       sources: sanitizeArticleSources(article.sources),
-      published_at: article.publishedAt,
+      published_at: normalizedStatus === 'published' ? article.publishedAt : null,
+      author_user_id: article.authorUserId ?? authUserId,
     }
 
     const { data, error } = await supabase.from('articles').upsert(payload).select('*').single()

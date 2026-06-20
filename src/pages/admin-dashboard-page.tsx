@@ -142,7 +142,7 @@ function emptyLandingSlide() {
 
 export function AdminDashboardPage() {
   const { user } = useAuth()
-  const { data } = useCMSState()
+  const { data } = useCMSState({ includeDraftArticles: true })
   const saveGroup = useSaveGroup()
   const saveEncounter = useSaveEncounter()
   const saveAsset = useSaveAsset()
@@ -1187,7 +1187,7 @@ export function AdminDashboardPage() {
         ) : null}
 
         <TabsContent value="misc">
-          <DiversosPanel />
+          <DiversosPanel data={data} />
         </TabsContent>
 
       </Tabs>

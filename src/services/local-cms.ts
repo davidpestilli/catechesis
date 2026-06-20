@@ -4,7 +4,7 @@ import {
   serializeLandingImageSrc,
 } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
-import { normalizeArticleCategory } from '@/lib/diversos'
+import { normalizeArticleCategory, normalizeArticleStatus } from '@/lib/diversos'
 import { createId, ensureUuid, slugify } from '@/lib/utils'
 import type {
   Article,
@@ -129,8 +129,10 @@ function sanitizeCMSState(state: CMSState): CMSState {
     articles: normalizedState.articles.map((article) => ({
       ...article,
       category: normalizeArticleCategory(article.category),
+      status: normalizeArticleStatus(article.status),
       cardImageUrl: article.cardImageUrl ?? article.coverImageUrl ?? undefined,
       sources: sanitizeArticleSources(article.sources),
+      publishedAt: article.status === 'draft' ? null : article.publishedAt ?? new Date().toISOString(),
     })),
     usefulLinks: Array.isArray(normalizedState.usefulLinks)
       ? normalizedState.usefulLinks
@@ -247,12 +249,17 @@ export function upsertLocalArticle(input: Partial<Article> & Pick<Article, 'titl
     excerpt: input.excerpt ?? '',
     contentHtml: input.contentHtml,
     category: normalizeArticleCategory(input.category),
+    status: normalizeArticleStatus(input.status),
     tags: input.tags ?? [],
     featured: input.featured ?? false,
     coverImageUrl: input.coverImageUrl,
     cardImageUrl: input.cardImageUrl ?? input.coverImageUrl,
     sources: sanitizeArticleSources(input.sources),
-    publishedAt: input.publishedAt ?? new Date().toISOString(),
+    publishedAt:
+      normalizeArticleStatus(input.status) === 'published'
+        ? input.publishedAt ?? new Date().toISOString()
+        : null,
+    authorUserId: input.authorUserId,
   }
 
   const existingIndex = state.articles.findIndex((item) => item.id === id)

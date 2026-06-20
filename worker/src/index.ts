@@ -28,6 +28,7 @@ type CommentContentType = 'article' | 'encounter'
 type CommentAuthorKind = 'guest' | 'admin' | 'catequista'
 type CommentSubscriptionSource = 'opt_in' | 'admin_auto'
 type ArticleCategory = 'general' | 'saints-life' | 'biblical' | 'catechism'
+type ArticleStatus = 'draft' | 'published'
 type ArticleSubscriptionSource = 'manual_form'
 type UserRole = 'admin' | 'catequista'
 const CATEQUETICO_APP_CODE = 'catequetico'
@@ -117,6 +118,8 @@ interface ArticleRow {
   title: string
   excerpt?: string | null
   category?: ArticleCategory | null
+  status?: ArticleStatus | null
+  author_user_id?: string | null
   card_image_url?: string | null
   cover_image_url?: string | null
   featured?: boolean | null
@@ -132,6 +135,7 @@ interface ArticleInput {
   excerpt?: string
   contentHtml?: string
   category?: string
+  status?: string
   tags?: unknown
   featured?: boolean
   coverImageUrl?: string
@@ -363,6 +367,20 @@ function normalizeArticleCategory(value?: string | null): ArticleCategory | null
   return null
 }
 
+function normalizeArticleStatus(value?: string | null): ArticleStatus {
+  return value === 'draft' ? 'draft' : 'published'
+}
+
+function slugify(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function getArticleCategoryDetails(category: ArticleCategory) {
   return articleCategoryMeta[category]
 }
@@ -592,6 +610,10 @@ function buildDisplayName(email: string, name?: string | null) {
 
 function isAdminUser(user: AuthUser | null) {
   return user?.profile?.ativo === true && user.profile.role === 'admin'
+}
+
+function isEditorUser(user: AuthUser | null) {
+  return user?.profile?.ativo === true && (user.profile.role === 'admin' || user.profile.role === 'catequista')
 }
 
 function mapSharedUserRow(row: SharedUserRowRaw): SharedUserRow {
@@ -927,12 +949,14 @@ async function upsertArticleRow(
     excerpt: string
     content_html: string
     category: ArticleCategory
+    status: ArticleStatus
+    author_user_id: string
     tags: string[]
     featured: boolean
     cover_image_url: string | null
     card_image_url: string | null
     sources: string[]
-    published_at: string
+    published_at: string | null
   },
 ) {
   const { response, data } = await supabaseRest<ArticleRow[]>(
@@ -1956,8 +1980,8 @@ async function handleCreateArticleSubscription(
 async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: Record<string, string>) {
   const authUser = await getAuthenticatedUser(request, env)
 
-  if (!isAdminUser(authUser)) {
-    return json({ error: 'Apenas administradores podem salvar artigos.' }, 403, headers)
+  if (!isEditorUser(authUser)) {
+    return json({ error: 'Apenas usuários autorizados podem salvar artigos.' }, 403, headers)
   }
 
   const body = await parseJson<ArticleInput>(request)
@@ -1967,11 +1991,13 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   }
 
   const articleId = typeof body.id === 'string' ? body.id.trim() : ''
-  const slug = typeof body.slug === 'string' ? body.slug.trim() : ''
   const title = typeof body.title === 'string' ? body.title.trim() : ''
   const excerpt = typeof body.excerpt === 'string' ? body.excerpt.trim() : ''
   const contentHtml = typeof body.contentHtml === 'string' ? body.contentHtml.trim() : ''
-  const category = normalizeArticleCategory(body.category)
+  const slugInput = typeof body.slug === 'string' ? body.slug.trim() : ''
+  const slug = slugInput || slugify(title)
+  const category = normalizeArticleCategory(body.category) ?? 'general'
+  const status = normalizeArticleStatus(body.status)
   const featured = Boolean(body.featured)
   const tags = sanitizeStringArray(body.tags)
   const sources = sanitizeStringArray(body.sources)
@@ -1981,33 +2007,49 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
     typeof body.cardImageUrl === 'string' && body.cardImageUrl.trim()
       ? body.cardImageUrl.trim()
       : coverImageUrl
-  const publishedAt =
-    typeof body.publishedAt === 'string' && !Number.isNaN(new Date(body.publishedAt).getTime())
-      ? new Date(body.publishedAt).toISOString()
-      : new Date().toISOString()
 
   if (!isUuid(articleId)) {
     return json({ error: 'Identificador do artigo inválido.' }, 400, headers)
-  }
-
-  if (!slug) {
-    return json({ error: 'Informe o slug do artigo.' }, 400, headers)
   }
 
   if (!title) {
     return json({ error: 'Informe o título do artigo.' }, 400, headers)
   }
 
-  if (!contentHtml) {
-    return json({ error: 'Informe o conteúdo do artigo.' }, 400, headers)
+  if (!slug) {
+    return json({ error: 'Informe um título ou slug válido para o artigo.' }, 400, headers)
   }
 
-  if (!category) {
-    return json({ error: 'Informe a pasta do artigo.' }, 400, headers)
+  if (status === 'published' && !contentHtml) {
+    return json({ error: 'Informe o conteúdo do artigo.' }, 400, headers)
   }
 
   try {
     const existingArticle = await getArticleById(env, articleId)
+    const adminUser = isAdminUser(authUser)
+
+    if (!adminUser && status === 'published') {
+      return json({ error: 'Apenas administradores podem publicar artigos.' }, 403, headers)
+    }
+
+    if (existingArticle && !adminUser) {
+      if (existingArticle.author_user_id !== authUser?.id) {
+        return json({ error: 'Você só pode editar rascunhos criados por você.' }, 403, headers)
+      }
+
+      if (existingArticle.status !== 'draft') {
+        return json({ error: 'Somente administradores podem alterar artigos já publicados.' }, 403, headers)
+      }
+    }
+
+    const publishedAt =
+      status === 'published'
+        ? typeof body.publishedAt === 'string' && !Number.isNaN(new Date(body.publishedAt).getTime())
+          ? new Date(body.publishedAt).toISOString()
+          : existingArticle?.published_at ?? new Date().toISOString()
+        : null
+    const authorUserId = existingArticle?.author_user_id ?? authUser?.id ?? ''
+
     const savedArticle = await upsertArticleRow(env, {
       id: articleId,
       slug,
@@ -2015,6 +2057,8 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
       excerpt,
       content_html: contentHtml,
       category,
+      status,
+      author_user_id: authorUserId,
       tags,
       featured,
       cover_image_url: coverImageUrl,
@@ -2023,9 +2067,9 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
       published_at: publishedAt,
     })
 
-    const isNewArticle = !existingArticle
+    const shouldNotify = status === 'published' && existingArticle?.status !== 'published'
 
-    if (isNewArticle) {
+    if (shouldNotify) {
       const baseUrl = normalizeBaseUrl(env.APP_BASE_URL) || new URL(request.url).origin
       const workerBaseUrl = new URL(request.url).origin
       await notifyArticleCategorySubscribers(env, savedArticle, category, baseUrl, workerBaseUrl)
@@ -2034,9 +2078,9 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
     return json(
       {
         article: savedArticle,
-        publicationNotificationSent: isNewArticle,
+        publicationNotificationSent: shouldNotify,
       },
-      isNewArticle ? 201 : 200,
+      existingArticle ? 200 : 201,
       headers,
     )
   } catch (error) {

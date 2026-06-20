@@ -1,4 +1,4 @@
-import type { Article, ArticleCategory } from '@/types/content'
+import type { Article, ArticleCategory, ArticleStatus } from '@/types/content'
 
 export const articleCategoryOptions: {
   value: ArticleCategory
@@ -42,6 +42,14 @@ export function normalizeArticleCategory(value: unknown): ArticleCategory {
   }
 
   return 'general'
+}
+
+export function normalizeArticleStatus(value: unknown): ArticleStatus {
+  return value === 'draft' ? 'draft' : 'published'
+}
+
+export function getArticleStatusLabel(status: ArticleStatus) {
+  return status === 'draft' ? 'Rascunho' : 'Publicado'
 }
 
 export function getArticleCategoryMeta(category: ArticleCategory) {
