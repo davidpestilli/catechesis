@@ -271,6 +271,15 @@ interface UpdateUserRequestBody {
   name?: string
 }
 
+function buildCatequeticoAuthMetadata(input: { name: string; role: UserRole }) {
+  return {
+    name: input.name,
+    role: input.role,
+    app_context: CATEQUETICO_APP_CODE,
+    app_code: CATEQUETICO_APP_CODE,
+  }
+}
+
 const articleCategoryMeta = {
   general: {
     label: 'Gerais',
@@ -829,10 +838,10 @@ async function createAuthUser(
       email: input.email,
       password: input.password,
       email_confirm: true,
-      user_metadata: {
+      user_metadata: buildCatequeticoAuthMetadata({
         name: input.name,
         role: input.role,
-      },
+      }),
     }),
   })
 
@@ -848,7 +857,7 @@ async function createAuthUser(
 async function updateAuthUser(
   env: GatewayEnv,
   userId: string,
-  input: { name: string },
+  input: { name: string; role: UserRole },
 ) {
   const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
     method: 'PUT',
@@ -858,9 +867,10 @@ async function updateAuthUser(
       Authorization: `Bearer ${env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({
-      user_metadata: {
+      user_metadata: buildCatequeticoAuthMetadata({
         name: input.name,
-      },
+        role: input.role,
+      }),
     }),
   })
 
@@ -2150,40 +2160,46 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
   if (existingSharedUser) {
     const existingAccess = await getUserAppAccessByUserId(env, existingSharedUser.id)
 
-    if (existingAccess) {
+    if (existingAccess?.ativo) {
       return json({ error: 'Este email já possui acesso ao Catequético.' }, 400, headers)
     }
-
-    return json(
-      {
-        error:
-          'Este email já pertence a um usuário existente em outro sistema do mesmo Supabase. Para evitar sobrescrever uma conta compartilhada, use outro email.',
-      },
-      400,
-      headers,
-    )
   }
 
   let createdUserId: string | null = null
 
   try {
-    const authUserRecord = await createAuthUser(env, {
-      email,
-      password,
-      name,
-      role,
-    })
+    const reusedExistingAccount = Boolean(existingSharedUser)
 
-    createdUserId = authUserRecord.id
+    if (existingSharedUser) {
+      await updateAuthUser(env, existingSharedUser.id, {
+        name,
+        role,
+      })
+    } else {
+      const authUserRecord = await createAuthUser(env, {
+        email,
+        password,
+        name,
+        role,
+      })
+
+      createdUserId = authUserRecord.id
+    }
+
+    const targetUserId = existingSharedUser?.id ?? createdUserId
+
+    if (!targetUserId) {
+      throw new Error('Não foi possível identificar o usuário criado no Auth.')
+    }
 
     const sharedUser = await upsertSharedUserProfile(env, {
-      id: authUserRecord.id,
+      id: targetUserId,
       email,
       name,
       active: true,
     })
     const access = await upsertUserAppAccess(env, {
-      userId: authUserRecord.id,
+      userId: targetUserId,
       role,
       active: true,
     })
@@ -2193,28 +2209,33 @@ async function handleCreateUser(request: Request, env: GatewayEnv, headers: Reco
     })
 
     let credentialsEmailQueued = false
-    let credentialsEmailError: string | null = null
+    let notice: string | null = null
 
-    try {
-      await sendUserCredentialsEmail(env, {
-        email,
-        password,
-        role,
-        baseUrl: new URL(request.url).origin,
-      })
-      credentialsEmailQueued = true
-    } catch (error) {
-      credentialsEmailError =
-        error instanceof Error ? error.message : 'Não foi possível enviar o email de credenciais.'
+    if (reusedExistingAccount) {
+      notice =
+        'A conta já existia em outro sistema compartilhado. O acesso ao Catequético foi concedido sem alterar a senha global.'
+    } else {
+      try {
+        await sendUserCredentialsEmail(env, {
+          email,
+          password,
+          role,
+          baseUrl: new URL(request.url).origin,
+        })
+        credentialsEmailQueued = true
+      } catch (error) {
+        notice = error instanceof Error ? error.message : 'Não foi possível enviar o email de credenciais.'
+      }
     }
 
     return json(
       {
         user: profile,
+        reusedExistingAccount,
         credentialsEmailQueued,
-        credentialsEmailError,
+        notice,
       },
-      201,
+      reusedExistingAccount ? 200 : 201,
       headers,
     )
   } catch (error) {
@@ -2277,7 +2298,10 @@ async function handleUpdateUser(
   const name = buildDisplayName(currentUser.email, body.name ?? currentUser.nome)
 
   try {
-    await updateAuthUser(env, userId, { name })
+    await updateAuthUser(env, userId, {
+      name,
+      role,
+    })
     const sharedUser = await upsertSharedUserProfile(env, {
       id: userId,
       email: currentUser.email,

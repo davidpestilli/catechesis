@@ -84,8 +84,9 @@ export const userManagementService = {
   async createUser(input: CreateUserPayload) {
     const payload = await request<{
       user: ManagedUserRow
+      reusedExistingAccount: boolean
       credentialsEmailQueued: boolean
-      credentialsEmailError?: string | null
+      notice?: string | null
     }>('/admin/users', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -93,8 +94,9 @@ export const userManagementService = {
 
     return {
       user: mapManagedUser(payload.user),
+      reusedExistingAccount: payload.reusedExistingAccount,
       credentialsEmailQueued: payload.credentialsEmailQueued,
-      credentialsEmailError: payload.credentialsEmailError ?? null,
+      notice: payload.notice ?? null,
     }
   },
 

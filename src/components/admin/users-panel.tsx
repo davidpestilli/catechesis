@@ -74,10 +74,15 @@ export function UsersPanel() {
       setName('')
       setRole('catequista')
 
-      if (result.credentialsEmailQueued) {
+      if (result.reusedExistingAccount) {
+        toast.success('Acesso concedido à conta compartilhada.')
+        if (result.notice) {
+          toast.warning(result.notice)
+        }
+      } else if (result.credentialsEmailQueued) {
         toast.success('Usuário criado e email enviado.')
       } else {
-        toast.warning(result.credentialsEmailError ?? 'Usuário criado, mas o email não foi enviado.')
+        toast.warning(result.notice ?? 'Usuário criado, mas o email não foi enviado.')
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Não foi possível criar o usuário.')
