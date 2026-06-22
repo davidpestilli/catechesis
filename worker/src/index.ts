@@ -376,8 +376,12 @@ function normalizeArticleCategory(value?: string | null): ArticleCategory | null
   return null
 }
 
-function normalizeArticleStatus(value?: string | null): ArticleStatus {
-  return value === 'draft' ? 'draft' : 'published'
+export function parseArticleStatus(value?: string | null): ArticleStatus | null {
+  if (value === 'draft' || value === 'published') {
+    return value
+  }
+
+  return null
 }
 
 function slugify(value: string) {
@@ -2007,7 +2011,7 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   const slugInput = typeof body.slug === 'string' ? body.slug.trim() : ''
   const slug = slugInput || slugify(title)
   const category = normalizeArticleCategory(body.category) ?? 'general'
-  const status = normalizeArticleStatus(body.status)
+  const requestedStatus = parseArticleStatus(body.status)
   const featured = Boolean(body.featured)
   const tags = sanitizeStringArray(body.tags)
   const sources = sanitizeStringArray(body.sources)
@@ -2037,6 +2041,7 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
   try {
     const existingArticle = await getArticleById(env, articleId)
     const adminUser = isAdminUser(authUser)
+    const status = requestedStatus ?? parseArticleStatus(existingArticle?.status) ?? 'draft'
 
     if (!adminUser && status === 'published') {
       return json({ error: 'Apenas administradores podem publicar artigos.' }, 403, headers)

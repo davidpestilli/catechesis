@@ -13,7 +13,7 @@ import {
   buildThreadSubscriptionHtml,
   buildThreadSubscriptionSubject,
 } from '../src/comment-email'
-import worker from '../src'
+import worker, { parseArticleStatus } from '../src'
 
 describe('catechesis gateway worker', () => {
   it('responde /health no modo unitario', async () => {
@@ -60,6 +60,13 @@ describe('catechesis gateway worker', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'Rota não encontrada.',
     })
+  })
+
+  it('trata status de artigo ausente ou invalido de forma conservadora', () => {
+    expect(parseArticleStatus('draft')).toBe('draft')
+    expect(parseArticleStatus('published')).toBe('published')
+    expect(parseArticleStatus(undefined)).toBeNull()
+    expect(parseArticleStatus('publicado')).toBeNull()
   })
 
   it('monta o email de confirmacao de assinatura da thread', () => {

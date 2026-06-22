@@ -68,7 +68,7 @@ interface ArticleRow {
 }
 
 function mapArticleRow(article: ArticleRow): Article {
-  const status = normalizeArticleStatus(article.status)
+  const status = normalizeArticleStatus(article.status, 'draft')
 
   return {
     id: article.id,
@@ -126,7 +126,7 @@ async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, '
       excerpt: article.excerpt,
       contentHtml: article.contentHtml,
       category: normalizeArticleCategory(article.category),
-      status: normalizeArticleStatus(article.status),
+      status: normalizeArticleStatus(article.status, 'draft'),
       tags: article.tags ?? [],
       featured: article.featured ?? false,
       coverImageUrl: article.coverImageUrl ?? '',
@@ -477,7 +477,7 @@ export const cmsService = {
       throw new Error('Sua sessão expirou. Faça login novamente para salvar o artigo.')
     }
 
-    const normalizedStatus = normalizeArticleStatus(article.status)
+    const normalizedStatus = normalizeArticleStatus(article.status, 'draft')
 
     const payload = {
       id: ensureUuid(article.id),

@@ -44,8 +44,15 @@ export function normalizeArticleCategory(value: unknown): ArticleCategory {
   return 'general'
 }
 
-export function normalizeArticleStatus(value: unknown): ArticleStatus {
-  return value === 'draft' ? 'draft' : 'published'
+export function normalizeArticleStatus(
+  value: unknown,
+  fallback: ArticleStatus = 'draft',
+): ArticleStatus {
+  if (value === 'draft' || value === 'published') {
+    return value
+  }
+
+  return fallback
 }
 
 export function getArticleStatusLabel(status: ArticleStatus) {
