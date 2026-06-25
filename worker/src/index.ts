@@ -415,6 +415,22 @@ function sanitizeStringArray(value: unknown) {
     .filter(Boolean)
 }
 
+function countInlineMediaEmbeds(contentHtml: string) {
+  return (contentHtml.match(/data:(image|video)\/[a-z0-9.+-]+;base64,/gi) ?? []).length
+}
+
+function getInlineMediaEmbedError(contentHtml: string) {
+  const count = countInlineMediaEmbeds(contentHtml)
+
+  if (count === 0) {
+    return null
+  }
+
+  return count === 1
+    ? 'O artigo ainda contém 1 arquivo embutido em base64. Reenvie a mídia pelo editor para salvar no storage antes de publicar.'
+    : `O artigo ainda contém ${count} arquivos embutidos em base64. Reenvie as mídias pelo editor para salvar no storage antes de publicar.`
+}
+
 function formatArticlePublishedAtLabel(value?: string | null) {
   const date = value ? new Date(value) : new Date()
 
@@ -2032,6 +2048,11 @@ async function handleUpsertArticle(request: Request, env: GatewayEnv, headers: R
 
   if (!slug) {
     return json({ error: 'Informe um título ou slug válido para o artigo.' }, 400, headers)
+  }
+
+  const inlineMediaError = getInlineMediaEmbedError(contentHtml)
+  if (inlineMediaError) {
+    return json({ error: inlineMediaError }, 400, headers)
   }
 
   if (status === 'published' && !contentHtml) {

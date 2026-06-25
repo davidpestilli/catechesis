@@ -8,7 +8,7 @@ import { FloatingBackButton } from '@/components/navigation/floating-back-button
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useCMSState } from '@/hooks/use-cms'
+import { useArticle } from '@/hooks/use-cms'
 import { getArticleCategoryMeta, getArticleCategoryPath, getArticlePath } from '@/lib/diversos'
 import { formatDate } from '@/lib/utils'
 
@@ -51,14 +51,21 @@ async function copyTextToClipboard(value: string) {
 export function ArticleViewPage() {
   const [shareActionsVisible, setShareActionsVisible] = useState(false)
   const { slug } = useParams()
-  const { data } = useCMSState()
-  const article = data?.articles.find((item) => item.slug === slug)
+  const { data: article, error } = useArticle(slug)
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 })
   }, [slug])
 
-  if (data && !article) {
+  if (error && !article) {
+    return (
+      <div className="px-4 py-16 text-stone-700">
+        Não foi possível carregar este artigo agora. Tente novamente em instantes.
+      </div>
+    )
+  }
+
+  if (article === null) {
     return <Navigate to="/artigos" replace />
   }
 

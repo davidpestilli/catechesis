@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useSaveArticle, useSaveUsefulLink } from '@/hooks/use-cms'
 import { articleCategoryOptions, getArticleCategoryMeta, getArticleStatusLabel } from '@/lib/diversos'
 import { useAuth } from '@/providers/auth-provider'
+import { cmsService } from '@/services/cms-service'
 import { createId, slugify } from '@/lib/utils'
 import type { Article, CMSState, UsefulLink } from '@/types/content'
 
@@ -409,6 +410,9 @@ export function DiversosPanel({ data }: { data: CMSState }) {
                   value={articleForm.contentHtml}
                   onChange={(contentHtml) =>
                     setArticleForm((current) => ({ ...current, contentHtml }))
+                  }
+                  onUploadMedia={(file, kind) =>
+                    cmsService.uploadMedia(file, kind === 'image' ? 'article-inline' : 'article-video')
                   }
                   disabled={!canEditSelectedArticle}
                 />

@@ -23,7 +23,7 @@ const validFolders = new Set(articleCategoryOptions.map((option) => option.folde
 
 export function ArticleCategoryPage() {
   const { folderSlug } = useParams()
-  const { data } = useCMSState()
+  const { data, error } = useCMSState()
   const createSubscription = useCreateArticleCategorySubscription()
   const [subscriberEmail, setSubscriberEmail] = useState('')
   const [subscriptionNoticeVisible, setSubscriptionNoticeVisible] = useState(false)
@@ -31,6 +31,14 @@ export function ArticleCategoryPage() {
 
   if (!folderSlug || !validFolders.has(folderSlug)) {
     return <Navigate to="/artigos" replace />
+  }
+
+  if (!data && error) {
+    return (
+      <div className="px-4 py-16 text-stone-700">
+        Não foi possível carregar esta pasta agora. Tente novamente em instantes.
+      </div>
+    )
   }
 
   if (!data) {

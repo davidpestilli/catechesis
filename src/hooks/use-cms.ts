@@ -17,6 +17,14 @@ export function useCMSState(options?: { includeDraftArticles?: boolean }) {
   })
 }
 
+export function useArticle(slug?: string, options?: { includeDraft?: boolean }) {
+  return useQuery({
+    queryKey: ['article', slug, options?.includeDraft ? 'editor' : 'public'],
+    queryFn: () => cmsService.getArticleBySlug(slug ?? '', options),
+    enabled: Boolean(slug),
+  })
+}
+
 export function useSaveEncounter() {
   const queryClient = useQueryClient()
   return useMutation({

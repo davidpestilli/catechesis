@@ -11,6 +11,7 @@
     "cf:dev": "npx wrangler dev --config worker/wrangler.jsonc",
     "cf:deploy": "npx wrangler deploy --config worker/wrangler.jsonc",
     "cf:types": "npx wrangler types worker/src/cloudflare-env.d.ts --config worker/wrangler.jsonc",
+    "articles:migrate-inline-media": "node scripts/migrate-article-inline-media.mjs",
     "sb:init": "npx supabase init",
     "sb:start": "npx supabase start",
     "sb:stop": "npx supabase stop",

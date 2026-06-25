@@ -2,7 +2,15 @@ import { HeroBanner } from '@/components/home/hero-banner'
 import { useCMSState } from '@/hooks/use-cms'
 
 export function HomePage() {
-  const { data } = useCMSState()
+  const { data, error } = useCMSState()
+
+  if (!data && error) {
+    return (
+      <div className="px-4 py-16 text-stone-700">
+        Não foi possível carregar a página inicial agora. Tente novamente em instantes.
+      </div>
+    )
+  }
 
   if (!data) {
     return <div className="px-4 py-16 text-stone-700">Carregando conteúdo...</div>

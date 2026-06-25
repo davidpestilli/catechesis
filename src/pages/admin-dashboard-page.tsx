@@ -142,7 +142,7 @@ function emptyLandingSlide() {
 
 export function AdminDashboardPage() {
   const { user } = useAuth()
-  const { data } = useCMSState({ includeDraftArticles: true })
+  const { data, error } = useCMSState({ includeDraftArticles: true })
   const saveGroup = useSaveGroup()
   const saveEncounter = useSaveEncounter()
   const saveAsset = useSaveAsset()
@@ -205,6 +205,14 @@ export function AdminDashboardPage() {
       current.encounterId || !firstEncounterId ? current : { ...current, encounterId: firstEncounterId },
     )
   }, [data, encounterOptions, groupOptions, settingsForm])
+
+  if (!data && error) {
+    return (
+      <div className="px-4 py-16 text-stone-700">
+        Não foi possível carregar o painel agora. Tente novamente em instantes.
+      </div>
+    )
+  }
 
   if (!data || !settingsForm) {
     return <div className="px-4 py-16 text-stone-700">Carregando painel...</div>

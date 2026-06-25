@@ -4,6 +4,7 @@ import {
   serializeLandingImageSrc,
 } from '@/data/landing-images'
 import { defaultCMSState } from '@/data/mock-content'
+import { getInlineMediaEmbedError } from '@/lib/article-content'
 import { normalizeArticleCategory, normalizeArticleStatus } from '@/lib/diversos'
 import { env, hasSupabaseConfig } from '@/lib/env'
 import { ensureUuid, fileToDataUrl } from '@/lib/utils'
@@ -55,7 +56,7 @@ interface ArticleRow {
   slug: string
   title: string
   excerpt?: string | null
-  content_html: string
+  content_html?: string | null
   category: string
   status?: string | null
   tags?: string[] | null
@@ -67,6 +68,22 @@ interface ArticleRow {
   author_user_id?: string | null
 }
 
+const PUBLIC_ARTICLE_LIST_COLUMNS = [
+  'id',
+  'slug',
+  'title',
+  'excerpt',
+  'category',
+  'status',
+  'tags',
+  'featured',
+  'cover_image_url',
+  'card_image_url',
+  'sources',
+  'published_at',
+  'author_user_id',
+].join(',')
+
 function mapArticleRow(article: ArticleRow): Article {
   const status = normalizeArticleStatus(article.status, 'draft')
 
@@ -75,7 +92,7 @@ function mapArticleRow(article: ArticleRow): Article {
     slug: article.slug,
     title: article.title,
     excerpt: article.excerpt ?? '',
-    contentHtml: article.content_html,
+    contentHtml: article.content_html ?? '',
     category: normalizeArticleCategory(article.category),
     status,
     tags: article.tags ?? [],
@@ -103,6 +120,12 @@ async function getAuthUserId() {
 }
 
 async function saveArticleWithWorker(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
+  const inlineMediaError = getInlineMediaEmbedError(article.contentHtml)
+
+  if (inlineMediaError) {
+    throw new Error(inlineMediaError)
+  }
+
   if (!env.workerUrl) {
     throw new Error('A URL do Worker não foi configurada.')
   }
@@ -213,7 +236,11 @@ async function mapSupabaseState(): Promise<CMSState> {
       supabase.from('quizzes').select('*'),
       supabase.from('quiz_questions').select('*').order('order_index'),
       supabase.from('quiz_options').select('*').order('order_index'),
-      supabase.from('articles').select('*').eq('status', 'published').order('published_at', { ascending: false }),
+      supabase
+        .from('articles')
+        .select(PUBLIC_ARTICLE_LIST_COLUMNS)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false }),
       supabase.from('useful_links').select('*').order('order_index'),
       supabase.from('site_settings').select('*').eq('key', 'home').maybeSingle(),
     ])
@@ -290,6 +317,8 @@ async function mapSupabaseState(): Promise<CMSState> {
     assetsByEncounter.set(asset.encounter_id, list)
   }
 
+  const publicArticles = Array.isArray(articlesRes.data) ? articlesRes.data : []
+
   return buildRemoteState({
     settings: {
       heroVideoUrl: settingsRes.data?.value?.heroVideoUrl ?? defaultCMSState.settings.heroVideoUrl,
@@ -315,8 +344,7 @@ async function mapSupabaseState(): Promise<CMSState> {
         assets: assetsByEncounter.get(encounter.id) ?? [],
         quiz: quizzesByEncounter.get(encounter.id),
       })) ?? [],
-    articles:
-      (articlesRes.data ?? []).map((article) => mapArticleRow(article as ArticleRow)) ?? [],
+    articles: publicArticles.map((article) => mapArticleRow(article as unknown as ArticleRow)),
     usefulLinks:
       (usefulLinksRes.data ?? []).map((usefulLink) => ({
         id: usefulLink.id,
@@ -378,11 +406,33 @@ export const cmsService = {
       return getLocalCMSState()
     }
 
-    try {
-      return options?.includeDraftArticles ? await mapSupabaseEditorState() : await mapSupabaseState()
-    } catch {
-      return getLocalCMSState()
+    return options?.includeDraftArticles ? await mapSupabaseEditorState() : await mapSupabaseState()
+  },
+
+  async getArticleBySlug(slug: string, options?: { includeDraft?: boolean }) {
+    const normalizedSlug = slug.trim()
+
+    if (!normalizedSlug) {
+      return null
     }
+
+    if (!hasSupabaseConfig || !supabase) {
+      return getLocalCMSState().articles.find((article) => article.slug === normalizedSlug) ?? null
+    }
+
+    let query = supabase.from('articles').select('*').eq('slug', normalizedSlug)
+
+    if (!options?.includeDraft) {
+      query = query.eq('status', 'published')
+    }
+
+    const { data, error } = await query.maybeSingle()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return data ? mapArticleRow(data as ArticleRow) : null
   },
 
   async saveEncounter(encounter: Partial<Encounter> & Pick<Encounter, 'title'>) {
@@ -460,6 +510,12 @@ export const cmsService = {
   },
 
   async saveArticle(article: Partial<Article> & Pick<Article, 'title' | 'contentHtml'>) {
+    const inlineMediaError = getInlineMediaEmbedError(article.contentHtml)
+
+    if (inlineMediaError) {
+      throw new Error(inlineMediaError)
+    }
+
     if (!supabase) {
       return upsertLocalArticle({
         ...article,

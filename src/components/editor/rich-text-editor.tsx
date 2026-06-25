@@ -17,11 +17,13 @@ import {
   Underline,
   Video,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn, fileToDataUrl } from '@/lib/utils'
 
 interface RichTextEditorProps {
   value: string
   onChange: (value: string) => void
+  onUploadMedia?: (file: File, kind: 'image' | 'video') => Promise<string>
   placeholder?: string
   className?: string
   disabled?: boolean
@@ -153,6 +155,7 @@ function normalizeTextAlignment(value: string | null | undefined): TextAlignment
 export function RichTextEditor({
   value,
   onChange,
+  onUploadMedia,
   placeholder = 'Digite ou cole o conteúdo aqui...',
   className,
   disabled = false,
@@ -162,6 +165,7 @@ export function RichTextEditor({
   const videoInputRef = useRef<HTMLInputElement>(null)
   const selectionRangeRef = useRef<Range | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [toolbarState, setToolbarState] = useState<ToolbarState>(defaultToolbarState)
 
   useEffect(() => {
@@ -329,14 +333,23 @@ export function RichTextEditor({
   }
 
   async function handleFileInsert(file: File, tag: 'image' | 'video') {
-    const dataUrl = await fileToDataUrl(file)
+    setIsUploadingMedia(true)
+
+    let src = ''
+
+    try {
+      src = onUploadMedia ? await onUploadMedia(file, tag) : await fileToDataUrl(file)
+    } finally {
+      setIsUploadingMedia(false)
+    }
+
     editorRef.current?.focus()
     restoreSelection()
 
     const markup =
       tag === 'image'
-        ? `<img alt="" class="my-4 mx-auto h-auto max-w-full rounded-[24px]" src="${dataUrl}" />`
-        : `<video controls class="my-4 mx-auto w-full rounded-[24px]" src="${dataUrl}"></video>`
+        ? `<img alt="" class="my-4 mx-auto h-auto max-w-full rounded-[24px]" src="${src}" />`
+        : `<video controls class="my-4 mx-auto w-full rounded-[24px]" src="${src}"></video>`
 
     document.execCommand('insertHTML', false, markup)
     emitChange()
@@ -430,7 +443,7 @@ export function RichTextEditor({
     <div
       className={cn(
         'flex flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,241,230,0.92))] text-stone-800 shadow-[0_18px_45px_rgba(74,61,35,0.09)] transition focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10',
-        disabled && 'opacity-75',
+        (disabled || isUploadingMedia) && 'opacity-75',
         className,
       )}
     >
@@ -439,7 +452,7 @@ export function RichTextEditor({
           <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              disabled={disabled}
+              disabled={disabled || isUploadingMedia}
               onChange={(event) => {
                 exec('fontName', event.target.value)
               }}
@@ -454,7 +467,7 @@ export function RichTextEditor({
 
             <select
               className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              disabled={disabled}
+              disabled={disabled || isUploadingMedia}
               value={toolbarState.currentHeading}
               onChange={(event) => {
                 applyBlockFormat(event.target.value)
@@ -474,7 +487,7 @@ export function RichTextEditor({
                 <button
                   key={label}
                   type="button"
-                  disabled={disabled}
+                  disabled={disabled || isUploadingMedia}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={action}
                   className={cn(
@@ -505,7 +518,7 @@ export function RichTextEditor({
                   type="color"
                   aria-label="Cor do texto"
                   value={toolbarState.currentColor}
-                  disabled={disabled}
+                  disabled={disabled || isUploadingMedia}
                   onChange={(event) => {
                     exec('foreColor', event.target.value)
                   }}
@@ -531,7 +544,7 @@ export function RichTextEditor({
       <div className="min-h-0 max-h-[30rem] overflow-y-auto bg-white md:max-h-[40rem]">
         <div
           ref={editorRef}
-          contentEditable={!disabled}
+          contentEditable={!disabled && !isUploadingMedia}
           suppressContentEditableWarning
           onInput={emitChange}
           onBlur={() => {
@@ -547,7 +560,7 @@ export function RichTextEditor({
           }}
           className={cn(
             'rich-text-editor-content min-h-[260px] w-full px-4 py-4 text-[15px] leading-7 text-stone-800 outline-none md:min-h-[340px] md:px-5',
-            disabled && 'cursor-not-allowed bg-stone-50/70',
+            (disabled || isUploadingMedia) && 'cursor-not-allowed bg-stone-50/70',
           )}
           data-placeholder={placeholder}
         />
@@ -559,7 +572,9 @@ export function RichTextEditor({
           HTML publicado no próprio sistema
         </span>
         <span>
-          {plainText
+          {isUploadingMedia
+            ? 'Enviando arquivo para a midia do sistema...'
+            : plainText
             ? `${plainText.length} caracteres no conteúdo`
             : 'Editor pronto para receber texto, imagens, video, citacoes e cor'}
         </span>
@@ -569,11 +584,19 @@ export function RichTextEditor({
         ref={imageInputRef}
         type="file"
         accept="image/*"
-        disabled={disabled}
+        disabled={disabled || isUploadingMedia}
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0]
-          if (file) await handleFileInsert(file, 'image')
+          if (file) {
+            try {
+              await handleFileInsert(file, 'image')
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : 'Não foi possível enviar a imagem para o sistema.'
+              toast.error(message)
+            }
+          }
           event.target.value = ''
         }}
       />
@@ -581,11 +604,19 @@ export function RichTextEditor({
         ref={videoInputRef}
         type="file"
         accept="video/*"
-        disabled={disabled}
+        disabled={disabled || isUploadingMedia}
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0]
-          if (file) await handleFileInsert(file, 'video')
+          if (file) {
+            try {
+              await handleFileInsert(file, 'video')
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : 'Não foi possível enviar o vídeo para o sistema.'
+              toast.error(message)
+            }
+          }
           event.target.value = ''
         }}
       />
